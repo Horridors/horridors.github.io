@@ -130,12 +130,57 @@
     return embedded || small;
   }
 
+  // Touch + portrait = phone held vertically. Always enter pseudo-fullscreen
+  // immediately so the game auto-rotates to landscape and fills the screen.
+  // No tap required — this avoids the broken squished-portrait view.
+  function isMobilePortrait() {
+    const touch = document.body.classList.contains('has-touch') ||
+                  ('ontouchstart' in window) ||
+                  (navigator.maxTouchPoints > 0);
+    const portrait = window.innerHeight > window.innerWidth;
+    return touch && portrait;
+  }
+
+  function enterPseudoIfMobilePortrait() {
+    if (!inRealFullscreen() && !pseudoOn && isMobilePortrait()) {
+      enterPseudo();
+    }
+  }
+
+  // Enter immediately on load if the phone is already in portrait.
+  // Run on DOMContentLoaded (if not already) and also right now as a safety net.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', enterPseudoIfMobilePortrait, { once: true });
+  } else {
+    enterPseudoIfMobilePortrait();
+  }
+
+  // If the user rotates their phone later, keep the game filling the screen:
+  // - Rotate TO portrait → auto enter pseudo-fullscreen (rotates game)
+  // - Rotate TO landscape → auto exit pseudo-fullscreen (game fits natively)
+  function onOrientationChange() {
+    // Give the browser a tick to update innerWidth/innerHeight
+    setTimeout(() => {
+      if (isMobilePortrait()) {
+        if (!pseudoOn && !inRealFullscreen()) enterPseudo();
+      } else {
+        // Landscape on touch device — drop the rotation so the game is upright
+        const touch = document.body.classList.contains('has-touch') ||
+                      ('ontouchstart' in window) ||
+                      (navigator.maxTouchPoints > 0);
+        if (touch && pseudoOn && !inRealFullscreen()) exitPseudo();
+      }
+    }, 50);
+  }
+  window.addEventListener('orientationchange', onOrientationChange);
+  window.addEventListener('resize', onOrientationChange);
+
+  // Also auto-enter on first interaction for tiny embeds (original behavior).
   let autoPromptedFs = false;
   function autoPrompt() {
     if (autoPromptedFs) return;
     autoPromptedFs = true;
-    if (!inRealFullscreen() && !pseudoOn && isEmbeddedSmall()) {
-      // Pseudo-fullscreen is safe to enter without user-gesture restrictions.
+    if (!inRealFullscreen() && !pseudoOn && (isEmbeddedSmall() || isMobilePortrait())) {
       enterPseudo();
     }
   }

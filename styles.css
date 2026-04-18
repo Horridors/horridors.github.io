@@ -1970,9 +1970,13 @@ body.pseudo-fullscreen #orient-hint { display: none !important; }
   }
   body.pseudo-fullscreen #game-frame {
     /* Now the frame lives inside a rotated container that is 100svh wide
-       and 100vw tall, so size it relative to those. */
+       and 100vw tall, so size it relative to those. The base rule's
+       max-width:100vw / max-height:100vh must also be swapped, or the
+       frame gets squished to the un-rotated viewport dimensions. */
     width: min(100svh, calc(100vw * 1.6)) !important;
     height: min(100vw, calc(100svh / 1.6)) !important;
+    max-width: 100svh !important;
+    max-height: 100vw !important;
   }
   /* Re-show touch controls (they were hidden by the portrait media query
      above, but that rule excludes .pseudo-fullscreen). We also need the
