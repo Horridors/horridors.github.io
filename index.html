@@ -1,0 +1,1265 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#07070b" />
+    <meta name="application-name" content="Horridors" />
+    <meta name="apple-mobile-web-app-title" content="Horridors" />
+    <meta name="description" content="Horridors — a kid-friendly horror adventure. Chester faces the Horridors to rescue Mum." />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
+    <title>Horridors — Level 1: The Red Keycard Hall</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Creepster&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="game-root">
+      <div id="game-frame">
+        <canvas id="game" width="960" height="600"></canvas>
+
+        <!-- Fullscreen toggle (always visible, top-right) -->
+        <button id="fullscreen-btn" type="button" aria-label="Toggle fullscreen" title="Fullscreen (F)">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path class="fs-enter" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>
+            <path class="fs-exit" d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5" style="display:none"/>
+          </svg>
+        </button>
+
+        <!-- HUD: inventory + objective -->
+        <div id="hud" class="ui-layer">
+          <div class="hud-left">
+            <div class="hud-item" id="hud-flashlight">
+              <span class="hud-icon">🔦</span>
+              <span class="hud-label">Flashlight</span>
+            </div>
+            <div class="hud-item" id="hud-battery">
+              <span class="hud-icon">🔋</span>
+              <span class="hud-label">Battery</span>
+            </div>
+            <div class="hud-item" id="hud-key1">
+              <span class="hud-icon">🗝️</span>
+              <span class="hud-label">Toy Room Key</span>
+            </div>
+            <div class="hud-item" id="hud-key2">
+              <span class="hud-icon">🗝️</span>
+              <span class="hud-label">Library Key</span>
+            </div>
+            <div class="hud-item" id="hud-keycard">
+              <span class="hud-icon">🔑</span>
+              <span class="hud-label">Red Keycard</span>
+            </div>
+          </div>
+          <div class="hud-right">
+            <div class="hud-objective" id="hud-objective">Find a way into one of the doors.</div>
+          </div>
+        </div>
+
+        <!-- Persistent coin pill (outside #hud so it's always visible) -->
+        <div id="hud-coins" class="ui-layer">
+          <span class="hud-icon">🪙</span>
+          <span class="hud-label">Coins 0</span>
+        </div>
+
+        <!-- Subtitle / speaker line -->
+        <div id="subtitle" class="ui-layer"></div>
+
+        <!-- Interaction prompt -->
+        <div id="prompt" class="ui-layer"></div>
+
+        <!-- Tasks / Checklist drawer -->
+        <button id="btn-tasks" class="ui-layer" aria-label="Tasks (T)">✅ Tasks (T)</button>
+        <div id="overlay-tasks" class="overlay hidden">
+          <div class="overlay-content notes-panel">
+            <div class="notes-title" id="tasks-title">Tasks</div>
+            <ul id="tasks-list" class="tasks-list"></ul>
+            <button id="btn-tasks-close" class="btn-ghost">Close (T / Esc)</button>
+          </div>
+        </div>
+
+        <!-- Notes drawer -->
+        <button id="btn-notes" class="ui-layer" aria-label="Notes (N)">📓 Notes (N)</button>
+        <div id="overlay-notes" class="overlay hidden">
+          <div class="overlay-content notes-panel">
+            <div class="notes-title">Things you've found</div>
+            <div id="notes-list" class="notes-list"></div>
+            <button id="btn-notes-close" class="btn-ghost">Close (N)</button>
+          </div>
+        </div>
+
+        <!-- Chase timer bar -->
+        <div id="chase-bar" class="ui-layer hidden">
+          <div class="chase-bar-fill"></div>
+          <div class="chase-bar-label">REACH THE SCANNER DOOR</div>
+        </div>
+
+        <!-- Hide indicator -->
+        <div id="hide-indicator" class="ui-layer hidden">🙈 Hidden — hold still</div>
+
+        <!-- Overlay: opening cutscene (Welcome to Horridors) -->
+        <div id="overlay-intro" class="overlay hidden">
+          <div class="overlay-content comic-panel intro-panel">
+            <div class="comic-banner">
+              <div class="comic-title">Welcome to Horridors</div>
+              <div class="comic-issue">A story for Chester — Issue #0</div>
+            </div>
+            <div class="comic-strip intro-strip">
+              <!-- Panel 1: Daycare at dusk, Mother waving -->
+              <figure class="comic-frame">
+                <div class="comic-caption top">One afternoon at the Horridor Day Care…</div>
+                <svg viewBox="0 0 200 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="introSky" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#4a2f5a"/>
+                      <stop offset="100%" stop-color="#a05a70"/>
+                    </linearGradient>
+                  </defs>
+                  <rect width="200" height="160" fill="url(#introSky)"/>
+                  <!-- daycare building -->
+                  <rect x="30" y="60" width="140" height="80" fill="#3a2a3a" stroke="#1a0a1a" stroke-width="1.5"/>
+                  <polygon points="20,60 100,28 180,60" fill="#2a1a2a" stroke="#0a000a" stroke-width="1.5"/>
+                  <rect x="55" y="80" width="22" height="22" fill="#f5c948"/>
+                  <rect x="123" y="80" width="22" height="22" fill="#f5c948"/>
+                  <rect x="90" y="95" width="20" height="45" fill="#5a3a1a" stroke="#1a0a00"/>
+                  <text x="100" y="54" text-anchor="middle" font-family="Creepster, cursive" font-size="10" fill="#f5e0a8">HORRIDOR DAY CARE</text>
+                  <!-- mom in pink at window waving -->
+                  <g transform="translate(66 82)">
+                    <circle cx="0" cy="0" r="4" fill="#ffe0c2"/>
+                    <rect x="-4" y="3" width="8" height="10" fill="#ff5fa2"/>
+                    <rect x="4" y="4" width="4" height="2" fill="#ffe0c2"/>
+                  </g>
+                  <!-- player kid outside -->
+                  <g transform="translate(100 130)">
+                    <circle cx="0" cy="-8" r="3" fill="#ffe0c2"/>
+                    <rect x="-3" y="-5" width="6" height="8" fill="#f5c948"/>
+                  </g>
+                </svg>
+                <div class="comic-speech left">Bye Mum!</div>
+              </figure>
+
+              <!-- Panel 2: The monsters take over -->
+              <figure class="comic-frame">
+                <div class="comic-caption top">…but the monsters came out to play.</div>
+                <svg viewBox="0 0 200 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                  <defs>
+                    <radialGradient id="introDark" cx="50%" cy="50%" r="80%">
+                      <stop offset="0%" stop-color="#2a0a1a"/>
+                      <stop offset="100%" stop-color="#080004"/>
+                    </radialGradient>
+                  </defs>
+                  <rect width="200" height="160" fill="url(#introDark)"/>
+                  <!-- Grinpatch silhouette (L1 monster) -->
+                  <g transform="translate(45 80)">
+                    <ellipse cx="0" cy="18" rx="16" ry="28" fill="#3a0a14" stroke="#8a0a1a" stroke-width="1.5"/>
+                    <circle cx="-5" cy="5" r="2" fill="#fff"/>
+                    <circle cx="5" cy="5" r="2" fill="#fff"/>
+                    <path d="M-8 18 Q0 28 8 18" stroke="#fff" stroke-width="1.5" fill="none"/>
+                    <path d="M-6 20 L-4 25 M-2 20 L0 25 M2 20 L4 25 M4 20 L6 25" stroke="#fff" stroke-width="0.8"/>
+                  </g>
+                  <!-- Drip (L2) -->
+                  <g transform="translate(100 75)">
+                    <path d="M-12 40 C -18 8 -10 -4 0 -6 C 10 -4 18 8 12 40 Z" fill="#0a1a24" stroke="#1a3a4a" stroke-width="1.5"/>
+                    <circle cx="-4" cy="10" r="2" fill="#8cdcff"/>
+                    <circle cx="4" cy="10" r="2" fill="#8cdcff"/>
+                  </g>
+                  <!-- Ex Preshon (L3) -->
+                  <g transform="translate(155 80)">
+                    <ellipse cx="0" cy="16" rx="14" ry="26" fill="#1a0030" stroke="#6a30a0" stroke-width="1.5"/>
+                    <circle cx="-4" cy="4" r="3" fill="#ffb0d0"/>
+                    <circle cx="4" cy="4" r="3" fill="#ffb0d0"/>
+                    <path d="M-6 16 Q 0 10 6 16" stroke="#ffb0d0" stroke-width="1.5" fill="none"/>
+                  </g>
+                  <text x="100" y="30" text-anchor="middle" font-family="Creepster, cursive" font-size="14" fill="#ff6080">THE HORRIDORS</text>
+                </svg>
+                <div class="comic-speech right">…we see you…</div>
+              </figure>
+
+              <!-- Panel 3: Mother trapped -->
+              <figure class="comic-frame">
+                <div class="comic-caption top">They took your mother somewhere deep inside.</div>
+                <svg viewBox="0 0 200 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                  <rect width="200" height="160" fill="#0a0410"/>
+                  <!-- cell bars -->
+                  <g stroke="#6a6a7a" stroke-width="3">
+                    <line x1="50" y1="30" x2="50" y2="150"/>
+                    <line x1="80" y1="30" x2="80" y2="150"/>
+                    <line x1="110" y1="30" x2="110" y2="150"/>
+                    <line x1="140" y1="30" x2="140" y2="150"/>
+                    <line x1="170" y1="30" x2="170" y2="150"/>
+                  </g>
+                  <!-- mom in pink, sad -->
+                  <g transform="translate(100 95)">
+                    <circle cx="0" cy="-18" r="10" fill="#ffe0c2" stroke="#6a4a30" stroke-width="1.5"/>
+                    <path d="M-10 -24 Q 0 -30 10 -24 L 10 -14 L -10 -14 Z" fill="#8a5a3a"/>
+                    <rect x="-10" y="-8" width="20" height="26" fill="#ff5fa2" stroke="#a02060" stroke-width="1.5" rx="3"/>
+                    <rect x="-10" y="18" width="20" height="14" fill="#3a2a5a"/>
+                    <circle cx="-3" cy="-18" r="1.5" fill="#1a1a1a"/>
+                    <circle cx="3" cy="-18" r="1.5" fill="#1a1a1a"/>
+                    <path d="M-3 -12 Q 0 -14 3 -12" stroke="#1a1a1a" stroke-width="1" fill="none"/>
+                  </g>
+                  <text x="100" y="25" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" fill="#ffb0d0" font-weight="700">— deep in the daycare —</text>
+                </svg>
+                <div class="comic-speech left">…help…</div>
+              </figure>
+
+              <!-- Panel 4: The coins -->
+              <figure class="comic-frame">
+                <div class="comic-caption top">Trust the coins. They were hers.</div>
+                <svg viewBox="0 0 200 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                  <rect width="200" height="160" fill="#1a1026"/>
+                  <!-- scattered coins with glow -->
+                  <g>
+                    <circle cx="40" cy="50" r="20" fill="#f5c948" stroke="#a07a00" stroke-width="2"/>
+                    <text x="40" y="55" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" fill="#6a4a00" font-weight="700">M</text>
+                    <circle cx="100" cy="80" r="24" fill="#f5c948" stroke="#a07a00" stroke-width="2"/>
+                    <text x="100" y="86" text-anchor="middle" font-family="Inter, sans-serif" font-size="16" fill="#6a4a00" font-weight="700">M</text>
+                    <circle cx="160" cy="55" r="18" fill="#f5c948" stroke="#a07a00" stroke-width="2"/>
+                    <text x="160" y="60" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#6a4a00" font-weight="700">M</text>
+                    <circle cx="60" cy="120" r="14" fill="#f5c948" stroke="#a07a00" stroke-width="2"/>
+                    <circle cx="130" cy="130" r="16" fill="#f5c948" stroke="#a07a00" stroke-width="2"/>
+                  </g>
+                  <!-- sparkles -->
+                  <g stroke="#fff2a0" stroke-width="1.5" stroke-linecap="round">
+                    <line x1="25" y1="30" x2="30" y2="35"/>
+                    <line x1="75" y1="95" x2="80" y2="100"/>
+                    <line x1="145" y1="115" x2="150" y2="120"/>
+                  </g>
+                </svg>
+                <div class="comic-speech right">clink…</div>
+              </figure>
+
+              <!-- Panel 5: The mission -->
+              <figure class="comic-frame">
+                <div class="comic-caption top">Your job: beat the monsters. Save Mum.</div>
+                <svg viewBox="0 0 200 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                  <defs>
+                    <radialGradient id="introHero" cx="30%" cy="40%" r="80%">
+                      <stop offset="0%" stop-color="#3a1a4a"/>
+                      <stop offset="100%" stop-color="#05000a"/>
+                    </radialGradient>
+                  </defs>
+                  <rect width="200" height="160" fill="url(#introHero)"/>
+                  <!-- hero kid with flashlight beam -->
+                  <path d="M60 90 L 200 40 L 200 140 Z" fill="#fff2a0" opacity="0.22"/>
+                  <g transform="translate(50 95)">
+                    <rect x="-3" y="-18" width="6" height="2" fill="#2a1a2a"/>
+                    <circle cx="0" cy="-12" r="7" fill="#ffe0c2" stroke="#6a4a30" stroke-width="1.5"/>
+                    <rect x="-8" y="-5" width="16" height="22" fill="#f5c948" stroke="#6b4e00" stroke-width="1.5" rx="2"/>
+                    <rect x="-8" y="17" width="16" height="12" fill="#3a2a5a"/>
+                    <circle cx="-2" cy="-12" r="1.2" fill="#1a1a1a"/>
+                    <circle cx="2" cy="-12" r="1.2" fill="#1a1a1a"/>
+                    <!-- flashlight in hand -->
+                    <rect x="8" y="0" width="8" height="4" fill="#6a6a7a"/>
+                  </g>
+                  <text x="100" y="25" text-anchor="middle" font-family="Creepster, cursive" font-size="16" fill="#ffe0a0">BRING HER HOME</text>
+                </svg>
+                <div class="comic-speech left">I'm coming, Mum.</div>
+              </figure>
+            </div>
+            <div class="intro-rules">
+              <div><b>Trust the coins.</b> Collect every one — you'll need them later.</div>
+              <div><b>Fear the monsters.</b> Each one is scared of something different.</div>
+              <div><b>Find your way deeper</b> to find Mum.</div>
+            </div>
+            <button id="btn-intro-close" class="btn-primary">Let's go (E or Space)</button>
+          </div>
+        </div>
+
+        <!-- Overlay: Mother glimpse (brief peek) -->
+        <div id="overlay-mother" class="overlay hidden">
+          <div class="overlay-content note-panel mother-panel">
+            <svg viewBox="0 0 200 200" width="200" height="200" aria-hidden="true" style="margin: 0 auto; display: block;">
+              <rect width="200" height="200" fill="#0a0410"/>
+              <g stroke="#6a6a7a" stroke-width="3">
+                <line x1="30" y1="10" x2="30" y2="190"/>
+                <line x1="70" y1="10" x2="70" y2="190"/>
+                <line x1="110" y1="10" x2="110" y2="190"/>
+                <line x1="150" y1="10" x2="150" y2="190"/>
+                <line x1="190" y1="10" x2="190" y2="190"/>
+              </g>
+              <g transform="translate(100 120)">
+                <circle cx="0" cy="-24" r="14" fill="#ffe0c2" stroke="#6a4a30" stroke-width="2"/>
+                <path d="M-14 -30 Q 0 -40 14 -30 L 14 -18 L -14 -18 Z" fill="#8a5a3a"/>
+                <rect x="-14" y="-10" width="28" height="36" fill="#ff5fa2" stroke="#a02060" stroke-width="2" rx="3"/>
+                <rect x="-14" y="26" width="28" height="20" fill="#3a2a5a"/>
+                <circle cx="-4" cy="-24" r="1.8" fill="#1a1a1a"/>
+                <circle cx="4" cy="-24" r="1.8" fill="#1a1a1a"/>
+                <path d="M-4 -16 Q 0 -18 4 -16" stroke="#1a1a1a" stroke-width="1.5" fill="none"/>
+              </g>
+            </svg>
+            <div class="note-paper" style="margin-top: 12px;">
+              <div class="note-title">Mum?</div>
+              <div class="note-text" id="mother-text">You see her behind bars for just a moment — pink sweater, scared eyes. She whispers: "Keep going. Don't come back empty-handed." Then she's gone again, deeper in.</div>
+            </div>
+            <button id="btn-mother-close" class="btn-primary">Keep going (E or Space)</button>
+          </div>
+        </div>
+
+        <!-- Overlay: title screen -->
+        <div id="overlay-title" class="overlay">
+          <div class="overlay-content">
+            <div class="title-brand">HORRIDORS</div>
+            <div class="title-sub">Level 1 — The Red Keycard Hall</div>
+            <div class="title-body">
+              Four doors. Four little challenges.<br />
+              Search every drawer, every locker, every shelf.<br />
+              And don't make Grinpatch jealous.
+            </div>
+            <button id="btn-start" class="btn-primary">Enter the Corridor</button>
+            <div class="level-jump">
+              <div class="level-jump-label">Jump to a level (testing)</div>
+              <div class="level-jump-row">
+                <button id="btn-jump-l1" class="btn-ghost">▶ Level 1</button>
+                <button id="btn-jump-l2" class="btn-ghost">▶ Level 2</button>
+                <button id="btn-jump-l3" class="btn-ghost">▶ Level 3</button>
+                <button id="btn-jump-l4" class="btn-ghost">▶ Level 4</button>
+                <button id="btn-jump-l5" class="btn-ghost">▶ Level 5</button>
+                <button id="btn-jump-l6" class="btn-ghost">▶ Level 6</button>
+                <button id="btn-jump-l7" class="btn-ghost">▶ Level 7</button>
+                <button id="btn-jump-l8" class="btn-ghost">▶ Level 8</button>
+              </div>
+            </div>
+            <div class="controls-hint">
+              <div><b>WASD</b> or <b>Arrow Keys</b> to move</div>
+              <div><b>E</b> or <b>Space</b> to interact · <b>F</b> flashlight · <b>N</b> notes · <b>M</b> mute</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlay: picture puzzle -->
+        <div id="overlay-puzzle" class="overlay hidden">
+          <div class="overlay-content puzzle-panel">
+            <div class="puzzle-title">PICTURE LOCK</div>
+            <div class="puzzle-sub" id="puzzle-sub">
+              Watch the sequence, then repeat it.
+            </div>
+            <div class="puzzle-sequence" id="puzzle-sequence">
+              <div class="seq-dot" data-i="0"></div>
+              <div class="seq-dot" data-i="1"></div>
+              <div class="seq-dot" data-i="2"></div>
+              <div class="seq-dot" data-i="3"></div>
+            </div>
+            <div class="puzzle-frames">
+              <button class="frame-btn" data-symbol="moon" aria-label="moon">
+                <svg viewBox="0 0 64 64">
+                  <path d="M42 14a22 22 0 1 0 8 24 18 18 0 0 1-8-24z" fill="#f5e6a8" stroke="#1a1a22" stroke-width="2" />
+                </svg>
+                <span>moon</span>
+              </button>
+              <button class="frame-btn" data-symbol="eye" aria-label="eye">
+                <svg viewBox="0 0 64 64">
+                  <path d="M4 32s10-16 28-16 28 16 28 16-10 16-28 16S4 32 4 32z" fill="#ffffff" stroke="#1a1a22" stroke-width="2" />
+                  <circle cx="32" cy="32" r="8" fill="#1a1a22" />
+                  <circle cx="35" cy="29" r="2" fill="#ffffff" />
+                </svg>
+                <span>eye</span>
+              </button>
+              <button class="frame-btn" data-symbol="key" aria-label="key">
+                <svg viewBox="0 0 64 64">
+                  <circle cx="20" cy="32" r="10" fill="none" stroke="#f5c542" stroke-width="4" />
+                  <path d="M30 32h28m-6 0v8m-8-8v6" stroke="#f5c542" stroke-width="4" fill="none" stroke-linecap="round" />
+                </svg>
+                <span>key</span>
+              </button>
+              <button class="frame-btn" data-symbol="smile" aria-label="smile">
+                <svg viewBox="0 0 64 64">
+                  <circle cx="32" cy="32" r="24" fill="#ffd94a" stroke="#1a1a22" stroke-width="2" />
+                  <circle cx="24" cy="27" r="3" fill="#1a1a22" />
+                  <circle cx="40" cy="27" r="3" fill="#1a1a22" />
+                  <path d="M22 38c3 5 7 7 10 7s7-2 10-7" stroke="#1a1a22" stroke-width="3" fill="none" stroke-linecap="round" />
+                </svg>
+                <span>smile</span>
+              </button>
+            </div>
+            <div class="puzzle-status" id="puzzle-status"></div>
+            <button id="btn-puzzle-close" class="btn-ghost">Back away (Esc)</button>
+          </div>
+        </div>
+
+        <!-- Overlay: combination lock -->
+        <div id="overlay-combo" class="overlay hidden">
+          <div class="overlay-content combo-panel">
+            <div class="combo-title">COMBINATION LOCK</div>
+            <div class="combo-sub" id="combo-sub">Find the 3-digit code somewhere in the rooms.</div>
+            <div class="combo-dials">
+              <div class="dial">
+                <button class="dial-btn" data-d="0" data-dir="1">▲</button>
+                <div class="dial-num" id="d0">0</div>
+                <button class="dial-btn" data-d="0" data-dir="-1">▼</button>
+              </div>
+              <div class="dial">
+                <button class="dial-btn" data-d="1" data-dir="1">▲</button>
+                <div class="dial-num" id="d1">0</div>
+                <button class="dial-btn" data-d="1" data-dir="-1">▼</button>
+              </div>
+              <div class="dial">
+                <button class="dial-btn" data-d="2" data-dir="1">▲</button>
+                <div class="dial-num" id="d2">0</div>
+                <button class="dial-btn" data-d="2" data-dir="-1">▼</button>
+              </div>
+            </div>
+            <button id="btn-combo-try" class="btn-primary">Try Combination</button>
+            <div class="combo-status" id="combo-status"></div>
+            <button id="btn-combo-close" class="btn-ghost">Back away (Esc)</button>
+          </div>
+        </div>
+
+        <!-- Overlay: note reader -->
+        <div id="overlay-note" class="overlay hidden">
+          <div class="overlay-content note-panel">
+            <div class="note-paper">
+              <div class="note-title" id="note-title">A scrap of paper</div>
+              <div class="note-text" id="note-text"></div>
+            </div>
+            <button id="btn-note-close" class="btn-primary">Pocket it (E)</button>
+          </div>
+        </div>
+
+        <!-- Overlay: end of level 1 -->
+        <div id="overlay-end" class="overlay hidden">
+          <div class="overlay-content end-panel">
+            <div class="end-title">LEVEL 1 COMPLETE</div>
+            <div class="end-sub">You survived Grinpatch.</div>
+            <div class="reward-chest" id="reward-chest"></div>
+            <div class="end-speaker">"More doors are waiting… and something down below is humming your name."</div>
+            <div class="tip-box" style="margin:14px auto 0;max-width:480px;padding:12px 14px;background:rgba(126,226,168,0.08);border:1px solid rgba(126,226,168,0.35);border-radius:10px;color:#c6efd0;font-size:13px;line-height:1.55;text-align:left;">
+              <b style="color:#ffd866">🧤 Tip:</b> Down in the Sublevel there's a clunky invention called the <b>GRABPACK</b> — a backpack with a stretchy glove. Search the <b>tool locker in the Pipe Room</b> to find it. Once you have it, press <b>1–5</b> to pick an element, then <b>E</b> to use it.
+            </div>
+            <div class="end-buttons">
+              <button id="btn-level2" class="btn-primary">Descend to Level 2 ▼</button>
+              <button id="btn-replay" class="btn-ghost">Play Level 1 Again</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlay: Level 2 title -->
+        <div id="overlay-l2-title" class="overlay hidden">
+          <div class="overlay-content l2-title-panel">
+            <div class="title-brand l2">SUBLEVEL</div>
+            <div class="title-sub l2">Level 2 — The Flooded Sublevel</div>
+            <div class="title-body">
+              The elevator clunks to a stop. Water laps at the door.<br />
+              Something green is bonking the glass of a nearby tank.<br />
+              Maybe it wants to help.
+            </div>
+            <div class="title-body" style="margin-top:18px;font-size:13px;line-height:1.55;color:#a9c9c2;text-align:left;max-width:520px;margin-left:auto;margin-right:auto;">
+              <b style="color:#7ee2a8">How to escape:</b>
+              <ol style="margin:6px 0 0 18px;padding:0;">
+                <li>Find <b>Inky Bin</b> — search the big tank in the <b>Aquarium</b> (left of spawn).</li>
+                <li>Find the <b>pipe order</b> (hub board + aquarium notes) and use the <b>Pipe Sequencer</b>.</li>
+                <li>Collect <b>3 valve handles</b> — one in each room.</li>
+                <li>Read <b>3 gauges</b> — red, blue, yellow (values change each run).</li>
+                <li>Open the <b>Control Panel</b> in the Control Room and dial in the readings.</li>
+                <li>Climb the <b>exit stairs</b> that appear in the hub.</li>
+              </ol>
+              <div style="margin-top:10px;color:#cfe9df;"><b>The Drip</b> is faster in darkness — but <b>Inky Bin scares him off</b>. Stay together.</div>
+            </div>
+            <button id="btn-l2-start" class="btn-primary">Step Into the Water</button>
+            <div class="controls-hint">
+              <div><b>WASD</b> move · <b>E/Space</b> interact · <b>F</b> flashlight</div>
+              <div><b>N</b> notes · <b>M</b> mute · <b>Shift</b> sprint short burst</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlay: Level 3 title -->
+        <div id="overlay-l3-title" class="overlay hidden">
+          <div class="overlay-content l3-title-panel">
+            <div class="title-brand l3">BACK HOME</div>
+            <div class="title-sub l3">Level 3 — The Corridor, Changed</div>
+            <div class="title-body">
+              You climb back to the corridor. Red emergency lights pulse.<br />
+              Walls have shifted. Something is in here with you —<br />
+              a tattered orange shape with <b style="color:#ffae5a">one big scribbled eye</b>.
+            </div>
+            <div class="title-body" style="margin-top:14px;padding:10px 14px;background:rgba(255,174,90,0.08);border:1px solid rgba(255,174,90,0.3);border-radius:10px;font-size:13px;line-height:1.55;color:#ffc89a;max-width:520px;margin-left:auto;margin-right:auto;">
+              💡 <b>Why is it so dark?</b> Every bulb is <b>smashed</b>. Ex Preshon <b>hates light</b> — he broke them all before you got here. Your flashlight is your only friend.
+            </div>
+            <div class="title-body" style="margin-top:18px;font-size:13px;line-height:1.55;color:#e5b29a;text-align:left;max-width:520px;margin-left:auto;margin-right:auto;">
+              <b style="color:#ff7a5a">Meet EX PRESHON</b> — the Orange Watcher
+              <ul style="margin:6px 0 0 18px;padding:0;">
+                <li><b>Stare at him</b> (face him, keep flashlight on): he FREEZES.</li>
+                <li><b>Look away</b> (turn your back): he CHARGES.</li>
+                <li>Blink too long and he's inches from your face.</li>
+              </ul>
+              <b style="color:#ff7a5a;display:block;margin-top:10px;">How to escape Level 3:</b>
+              <ol style="margin:6px 0 0 18px;padding:0;">
+                <li>Find <b>3 fuses</b> hidden in the rooms (search carefully).</li>
+                <li>Solve the <b>Reflection Puzzle</b> in the Library (mirror symbols).</li>
+                <li>Crack the <b>4-digit exit code</b> from fuse-box clues.</li>
+                <li>Enter the code at the <b>corridor exit</b>.</li>
+              </ol>
+            </div>
+            <button id="btn-l3-start" class="btn-primary">Step Back Into the Corridor</button>
+            <div class="controls-hint">
+              <div><b>WASD</b> move · <b>E/Space</b> interact · <b>F</b> flashlight</div>
+              <div>Keep the flashlight on <b>Ex Preshon</b> — but collect items fast</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlay: Level 3 end -->
+        <div id="overlay-l3-end" class="overlay hidden">
+          <div class="overlay-content end-panel">
+            <div class="end-title l3">LEVEL 3 COMPLETE</div>
+            <div class="end-sub">The corridor door swings open. Morning light.</div>
+            <div class="reward-chest" id="l3-reward-chest"></div>
+            <div class="end-speaker">"You looked it in the eye. You made it home."</div>
+            <div class="end-buttons">
+              <button id="btn-l3-comic" class="btn-ghost">📖 View Comic — Ex Preshon: Origin</button>
+              <button id="btn-l3-replay" class="btn-ghost">Replay Level 3</button>
+              <button id="btn-l3-next" class="btn-primary">Descend to Level 4 →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlay: Ex Preshon Origin comic (unlocked in L3 end / treasure) -->
+        <div id="overlay-l3-comic" class="overlay hidden">
+          <div class="overlay-content comic-panel">
+            <div class="comic-banner">
+              <div class="comic-badge" id="l3-comic-badge">NEW COLLECTIBLE</div>
+              <div class="comic-title">Ex Preshon: Origin</div>
+              <div class="comic-issue">Chester finds the truth — Level 4 tease</div>
+            </div>
+            <div class="comic-strip">
+              <!-- Panel 1: Chester finds a yearbook -->
+              <figure class="comic-frame" id="l3-comic-p1">
+                <div class="comic-caption top">Chester pries open the last box…</div>
+                <svg viewBox="0 0 200 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                  <defs>
+                    <radialGradient id="l3bg1" cx="45%" cy="50%" r="80%">
+                      <stop offset="0%" stop-color="#3a2a1a"/>
+                      <stop offset="100%" stop-color="#0a0604"/>
+                    </radialGradient>
+                  </defs>
+                  <rect width="200" height="160" fill="url(#l3bg1)"/>
+                  <!-- attic floor planks -->
+                  <g stroke="#2a1808" stroke-width="1" opacity="0.5">
+                    <line x1="0" y1="130" x2="200" y2="130"/>
+                    <line x1="0" y1="145" x2="200" y2="145"/>
+                  </g>
+                  <!-- dusty box -->
+                  <rect x="70" y="95" width="80" height="40" fill="#6a4a2a" stroke="#1a0e04" stroke-width="1.5"/>
+                  <rect x="72" y="92" width="76" height="6" fill="#7a5a3a"/>
+                  <!-- Chester peering in (yellow raincoat) -->
+                  <g transform="translate(30 85)">
+                    <rect width="26" height="32" rx="3" fill="#f5c948" stroke="#6b4e00" stroke-width="1.5"/>
+                    <rect x="4" y="6" width="18" height="10" fill="#2a1f00" opacity="0.6"/>
+                    <circle cx="9" cy="11" r="1.5" fill="#fff"/>
+                    <circle cx="17" cy="11" r="1.5" fill="#fff"/>
+                    <path d="M8 20 Q 13 22 18 20" stroke="#2a1f00" stroke-width="1" fill="none"/>
+                  </g>
+                  <!-- yearbook photo coming out -->
+                  <g transform="translate(95 78)" stroke="#1a0e04" stroke-width="1.2">
+                    <rect x="-18" y="-10" width="36" height="24" fill="#e8dcc0"/>
+                    <!-- photo inset: boy + teacher silhouettes -->
+                    <rect x="-15" y="-7" width="30" height="14" fill="#2a3040"/>
+                    <!-- boy silhouette (one-eye — covered by patch) -->
+                    <circle cx="-6" cy="0" r="3" fill="#d8c098"/>
+                    <rect x="-8" y="-2" width="4" height="2" fill="#1a0e04"/>
+                    <!-- teacher silhouette (pink hair hint) -->
+                    <circle cx="6" cy="0" r="3" fill="#d8c098"/>
+                    <path d="M3 -3 Q 6 -6 9 -3" stroke="#ff6fb8" stroke-width="1.6" fill="none"/>
+                  </g>
+                  <!-- dust motes -->
+                  <g fill="#f5d8a0" opacity="0.6">
+                    <circle cx="60" cy="40" r="0.8"/>
+                    <circle cx="130" cy="55" r="1"/>
+                    <circle cx="160" cy="30" r="0.8"/>
+                    <circle cx="100" cy="60" r="0.6"/>
+                  </g>
+                </svg>
+                <div class="comic-speech right">a yearbook…?</div>
+              </figure>
+              <!-- Panel 2: the photo — boy and teacher -->
+              <figure class="comic-frame" id="l3-comic-p2">
+                <div class="comic-caption top">Before he was a horridor, he was a boy.</div>
+                <svg viewBox="0 0 200 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="l3bg2" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#1a2a3a"/>
+                      <stop offset="100%" stop-color="#0a0406"/>
+                    </linearGradient>
+                  </defs>
+                  <rect width="200" height="160" fill="url(#l3bg2)"/>
+                  <!-- photo border -->
+                  <rect x="10" y="10" width="180" height="140" fill="#e8dcc0" stroke="#3a2a14" stroke-width="2"/>
+                  <rect x="16" y="16" width="168" height="118" fill="#6a5a50"/>
+                  <!-- classroom backdrop -->
+                  <rect x="20" y="20" width="160" height="80" fill="#3a4a5a"/>
+                  <!-- chalkboard -->
+                  <rect x="30" y="28" width="60" height="36" fill="#1a2a1a"/>
+                  <text x="60" y="48" fill="#ddd" font-family="'Courier New',monospace" font-size="6" text-anchor="middle">DAY CARE</text>
+                  <text x="60" y="58" fill="#ddd" font-family="'Courier New',monospace" font-size="6" text-anchor="middle">ROLL CALL</text>
+                  <!-- the boy (will become Ex Preshon) — one eye patched -->
+                  <g transform="translate(70 108)">
+                    <!-- body -->
+                    <rect x="-9" y="-4" width="18" height="22" rx="2" fill="#5a4a3a" stroke="#2a1a0a" stroke-width="1.2"/>
+                    <!-- head -->
+                    <circle cx="0" cy="-12" r="9" fill="#e8c69a" stroke="#3a1a0a" stroke-width="1.2"/>
+                    <!-- hair (dark, messy) -->
+                    <path d="M-8 -18 Q -5 -22 0 -20 Q 5 -22 8 -18 L 8 -14 Q 0 -16 -8 -14 Z" fill="#2a1a14"/>
+                    <!-- one open eye -->
+                    <circle cx="3" cy="-12" r="1.6" fill="#fff"/>
+                    <circle cx="3" cy="-12" r="0.9" fill="#1a1a1a"/>
+                    <!-- other eye: PATCH (foreshadowing one-eye monster) -->
+                    <rect x="-6" y="-14" width="6" height="3" fill="#1a1a1a"/>
+                    <line x1="-8" y1="-13" x2="-9" y2="-9" stroke="#1a1a1a" stroke-width="0.8"/>
+                    <line x1="0" y1="-13" x2="2" y2="-9" stroke="#1a1a1a" stroke-width="0.8"/>
+                    <!-- mouth — flat, sad -->
+                    <line x1="-3" y1="-7" x2="3" y2="-7" stroke="#3a1a0a" stroke-width="1"/>
+                  </g>
+                  <!-- EXLENA (pink-haired teacher, too close, wide smile) -->
+                  <g transform="translate(130 108)">
+                    <!-- body (pink teacher cardigan) -->
+                    <rect x="-12" y="-6" width="24" height="26" rx="3" fill="#d96fa8" stroke="#5a1a3a" stroke-width="1.2"/>
+                    <!-- head -->
+                    <circle cx="0" cy="-14" r="10" fill="#f0ccb0" stroke="#3a1a1a" stroke-width="1.2"/>
+                    <!-- pink hair, tall and framed -->
+                    <path d="M-10 -20 Q -12 -26 -4 -24 Q 0 -28 4 -24 Q 12 -26 10 -20 L 10 -14 Q 0 -18 -10 -14 Z" fill="#ff6fb8" stroke="#5a1a3a" stroke-width="1"/>
+                    <!-- eyes (wide, unblinking) -->
+                    <circle cx="-3" cy="-14" r="2" fill="#fff"/>
+                    <circle cx="3" cy="-14" r="2" fill="#fff"/>
+                    <circle cx="-3" cy="-14" r="1" fill="#1a1a1a"/>
+                    <circle cx="3" cy="-14" r="1" fill="#1a1a1a"/>
+                    <!-- wide smile, too wide -->
+                    <path d="M-5 -9 Q 0 -5 5 -9" stroke="#5a1a3a" stroke-width="1.4" fill="#fff0"/>
+                    <path d="M-5 -9 Q 0 -5 5 -9" fill="#3a1a2a" opacity="0.6"/>
+                    <!-- hand on boy's shoulder -->
+                    <circle cx="-13" cy="-2" r="3" fill="#f0ccb0" stroke="#3a1a1a" stroke-width="1"/>
+                  </g>
+                  <!-- photo caption strip -->
+                  <rect x="16" y="134" width="168" height="14" fill="#e8dcc0"/>
+                  <text x="100" y="143" fill="#3a2a14" font-family="'Courier New',monospace" font-size="6" text-anchor="middle">DAY CARE — 1997 — MS. EXLENA &amp; STUDENT</text>
+                </svg>
+                <div class="comic-speech left">…that's him…</div>
+              </figure>
+              <!-- Panel 3: tease Level 4 — both shadows in basement -->
+              <figure class="comic-frame" id="l3-comic-p3">
+                <div class="comic-caption top">The basement is where it started. Level 4.</div>
+                <svg viewBox="0 0 200 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                  <defs>
+                    <radialGradient id="l3bg3" cx="50%" cy="40%" r="75%">
+                      <stop offset="0%" stop-color="#2a0a1a"/>
+                      <stop offset="100%" stop-color="#04020a"/>
+                    </radialGradient>
+                    <radialGradient id="l3torch" cx="20%" cy="70%" r="35%">
+                      <stop offset="0%" stop-color="#ffd27a" stop-opacity="0.85"/>
+                      <stop offset="100%" stop-color="#ffd27a" stop-opacity="0"/>
+                    </radialGradient>
+                  </defs>
+                  <rect width="200" height="160" fill="url(#l3bg3)"/>
+                  <!-- stone floor hint -->
+                  <g stroke="#1a0a12" stroke-width="0.8" opacity="0.7">
+                    <line x1="0" y1="130" x2="200" y2="130"/>
+                    <line x1="60" y1="130" x2="50" y2="145"/>
+                    <line x1="120" y1="130" x2="135" y2="145"/>
+                  </g>
+                  <!-- torch cone from bottom-left (player just off-screen) -->
+                  <ellipse cx="30" cy="120" rx="55" ry="40" fill="url(#l3torch)"/>
+                  <!-- Ex Preshon silhouette (tall, one giant eye) — left -->
+                  <g transform="translate(70 85)">
+                    <path d="M-14 50 C -18 10 -10 -8 0 -10 C 10 -8 18 10 14 50 Z" fill="#1a0a14" stroke="#5a1a3a" stroke-width="1.2"/>
+                    <!-- single giant eye, glowing -->
+                    <circle cx="0" cy="5" r="6" fill="#fff8dc"/>
+                    <circle cx="0" cy="5" r="3" fill="#ff3030"/>
+                    <circle cx="0" cy="5" r="1.2" fill="#1a0a14"/>
+                  </g>
+                  <!-- EXLENA silhouette (horned, pink glow) — right -->
+                  <g transform="translate(135 85)">
+                    <!-- body -->
+                    <path d="M-15 50 C -18 15 -12 -6 0 -8 C 12 -6 18 15 15 50 Z" fill="#2a0a1a" stroke="#ff5fa2" stroke-width="1.2"/>
+                    <!-- horns -->
+                    <path d="M-7 -8 L -10 -16 L -5 -10 Z" fill="#ff5fa2" stroke="#5a1a3a" stroke-width="0.8"/>
+                    <path d="M7 -8 L 10 -16 L 5 -10 Z" fill="#ff5fa2" stroke="#5a1a3a" stroke-width="0.8"/>
+                    <!-- two white eyes with pink ring -->
+                    <circle cx="-4" cy="2" r="2.8" fill="#fff"/>
+                    <circle cx="4" cy="2" r="2.8" fill="#fff"/>
+                    <circle cx="-4" cy="2" r="1.6" fill="#ff5fa2"/>
+                    <circle cx="4" cy="2" r="1.6" fill="#ff5fa2"/>
+                    <circle cx="-4" cy="2" r="0.8" fill="#1a0a14"/>
+                    <circle cx="4" cy="2" r="0.8" fill="#1a0a14"/>
+                    <!-- wide toothy grin -->
+                    <path d="M-6 10 L 6 10 L 4 14 L 2 10 L 0 14 L -2 10 L -4 14 Z" fill="#fff" stroke="#5a1a3a" stroke-width="0.8"/>
+                  </g>
+                  <!-- drip/water stains -->
+                  <g fill="#5a1a2a" opacity="0.5">
+                    <path d="M50 20 Q 52 30 50 35 Q 48 30 50 20"/>
+                    <path d="M160 15 Q 162 28 160 32 Q 158 28 160 15"/>
+                  </g>
+                  <!-- title text teaser -->
+                  <text x="100" y="26" fill="#ff5fa2" font-family="'Courier New',monospace" font-size="11" font-weight="bold" text-anchor="middle" letter-spacing="2">LEVEL 4</text>
+                  <text x="100" y="40" fill="#ffd27a" font-family="'Courier New',monospace" font-size="6" text-anchor="middle" letter-spacing="1">TWO SHADOWS, ONE WAY OUT</text>
+                </svg>
+                <div class="comic-speech left">she's down there with him</div>
+              </figure>
+            </div>
+            <div class="comic-footer">
+              <div class="comic-tip">The basement isn't just Ex Preshon. EXLENA was his teacher — and she never let him leave.</div>
+              <button id="btn-l3-comic-close" class="btn-primary">Got it (E / Space)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlay: Level 3 reflection puzzle -->
+        <div id="overlay-mirror" class="overlay hidden">
+          <div class="overlay-content mirror-panel">
+            <div class="mirror-title">THE MIRROR</div>
+            <div class="mirror-sub">Turn the tiles so each row mirrors the column on the left.</div>
+            <div class="mirror-board" id="mirror-board"></div>
+            <div class="mirror-status" id="mirror-status"></div>
+            <button id="btn-mirror-close" class="btn-ghost">Back away (Esc)</button>
+          </div>
+        </div>
+
+        <!-- Overlay: Level 3 exit code lock -->
+        <div id="overlay-code" class="overlay hidden">
+          <div class="overlay-content code-panel">
+            <div class="code-title">EXIT CODE</div>
+            <div class="code-sub" id="code-sub">Enter the 4-digit code from the fuses.</div>
+            <div class="code-wheels">
+              <div class="codewheel" data-w="0">
+                <button class="cw-btn" data-w="0" data-dir="-1">▲</button>
+                <div class="cw-num" id="cw0">0</div>
+                <button class="cw-btn" data-w="0" data-dir="1">▼</button>
+              </div>
+              <div class="codewheel" data-w="1">
+                <button class="cw-btn" data-w="1" data-dir="-1">▲</button>
+                <div class="cw-num" id="cw1">0</div>
+                <button class="cw-btn" data-w="1" data-dir="1">▼</button>
+              </div>
+              <div class="codewheel" data-w="2">
+                <button class="cw-btn" data-w="2" data-dir="-1">▲</button>
+                <div class="cw-num" id="cw2">0</div>
+                <button class="cw-btn" data-w="2" data-dir="1">▼</button>
+              </div>
+              <div class="codewheel" data-w="3">
+                <button class="cw-btn" data-w="3" data-dir="-1">▲</button>
+                <div class="cw-num" id="cw3">0</div>
+                <button class="cw-btn" data-w="3" data-dir="1">▼</button>
+              </div>
+            </div>
+            <button id="btn-code-try" class="btn-primary">Enter code</button>
+            <div class="code-status" id="code-status"></div>
+            <button id="btn-code-close" class="btn-ghost">Back away (Esc)</button>
+          </div>
+        </div>
+
+        <!-- Overlay: Squidley comic cutscene -->
+        <div id="overlay-comic" class="overlay hidden">
+          <div class="overlay-content comic-panel">
+            <div class="comic-banner">
+              <div class="comic-badge" id="comic-badge">NEW COLLECTIBLE</div>
+              <div class="comic-title">Inky Bin vs. The Drip</div>
+              <div class="comic-issue">Issue #1 — "Lights Out, Sort Of"</div>
+            </div>
+            <div class="comic-strip">
+              <!-- Panel 1 -->
+              <figure class="comic-frame" id="comic-p1">
+                <div class="comic-caption top">Alone in the dark…</div>
+                <svg viewBox="0 0 200 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                  <defs>
+                    <radialGradient id="bg1" cx="30%" cy="40%" r="80%">
+                      <stop offset="0%" stop-color="#143040"/>
+                      <stop offset="100%" stop-color="#04080c"/>
+                    </radialGradient>
+                    <radialGradient id="flash" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stop-color="#fff2a0" stop-opacity="0.9"/>
+                      <stop offset="100%" stop-color="#fff2a0" stop-opacity="0"/>
+                    </radialGradient>
+                  </defs>
+                  <rect width="200" height="160" fill="url(#bg1)"/>
+                  <!-- water ripples -->
+                  <path d="M0 130 Q 50 125 100 130 T 200 130" stroke="rgba(120,200,220,0.3)" fill="none" stroke-width="1.5"/>
+                  <path d="M0 145 Q 40 140 80 145 T 200 145" stroke="rgba(120,200,220,0.2)" fill="none" stroke-width="1.5"/>
+                  <!-- flashlight cone -->
+                  <ellipse cx="70" cy="90" rx="55" ry="30" fill="url(#flash)"/>
+                  <!-- player (yellow raincoat square) -->
+                  <g transform="translate(60 95)">
+                    <rect width="22" height="26" rx="3" fill="#f5c948" stroke="#6b4e00" stroke-width="1.5"/>
+                    <rect x="4" y="6" width="14" height="8" fill="#2a1f00" opacity="0.6"/>
+                    <circle cx="8" cy="10" r="1.2" fill="#fff"/>
+                    <circle cx="14" cy="10" r="1.2" fill="#fff"/>
+                    <path d="M8 18 Q 11 16 14 18" stroke="#2a1f00" stroke-width="1" fill="none"/>
+                  </g>
+                  <!-- drip monster looming from right -->
+                  <g transform="translate(155 60)">
+                    <path d="M-16 66 C -22 20 -14 -4 0 -6 C 14 -4 22 20 16 66 Z" fill="#0a1a24" stroke="#1a3a4a" stroke-width="1.5"/>
+                    <circle cx="-5" cy="14" r="2" fill="#d9f0ff"/>
+                    <circle cx="5" cy="14" r="2" fill="#d9f0ff"/>
+                    <!-- drips -->
+                    <circle cx="-8" cy="50" r="1.5" fill="#8cdcff"/>
+                    <circle cx="3" cy="58" r="1.5" fill="#8cdcff"/>
+                  </g>
+                  <!-- shiver lines by player -->
+                  <path d="M48 98 q -4 3 0 6" stroke="#7ee2a8" stroke-width="1.2" fill="none"/>
+                  <path d="M44 108 q -4 3 0 6" stroke="#7ee2a8" stroke-width="1.2" fill="none"/>
+                </svg>
+                <div class="comic-speech right">drip… drip…</div>
+              </figure>
+              <!-- Panel 2 -->
+              <figure class="comic-frame" id="comic-p2">
+                <div class="comic-caption top">Suddenly — a friend!</div>
+                <svg viewBox="0 0 200 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                  <defs>
+                    <radialGradient id="bg2" cx="50%" cy="50%" r="80%">
+                      <stop offset="0%" stop-color="#18404a"/>
+                      <stop offset="100%" stop-color="#04080c"/>
+                    </radialGradient>
+                    <radialGradient id="squidGlow" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stop-color="#9fffc4" stop-opacity="0.95"/>
+                      <stop offset="60%" stop-color="#7ee2a8" stop-opacity="0.5"/>
+                      <stop offset="100%" stop-color="#7ee2a8" stop-opacity="0"/>
+                    </radialGradient>
+                  </defs>
+                  <rect width="200" height="160" fill="url(#bg2)"/>
+                  <!-- squidley burst -->
+                  <circle cx="100" cy="75" r="75" fill="url(#squidGlow)"/>
+                  <!-- starburst -->
+                  <g stroke="#bdffda" stroke-width="2" stroke-linecap="round" fill="none">
+                    <line x1="100" y1="5" x2="100" y2="18"/>
+                    <line x1="100" y1="132" x2="100" y2="145"/>
+                    <line x1="25" y1="75" x2="38" y2="75"/>
+                    <line x1="162" y1="75" x2="175" y2="75"/>
+                    <line x1="45" y1="20" x2="55" y2="30"/>
+                    <line x1="145" y1="20" x2="155" y2="30"/>
+                    <line x1="45" y1="130" x2="55" y2="120"/>
+                    <line x1="145" y1="130" x2="155" y2="120"/>
+                  </g>
+                  <!-- Squidley -->
+                  <g transform="translate(100 75)">
+                    <!-- body -->
+                    <ellipse cx="0" cy="-4" rx="22" ry="20" fill="#3ecf7a" stroke="#1a6a3a" stroke-width="1.8"/>
+                    <ellipse cx="-4" cy="-10" rx="8" ry="4" fill="#a9f0c6" opacity="0.7"/>
+                    <!-- eyes -->
+                    <circle cx="-7" cy="-5" r="3.5" fill="#fff"/>
+                    <circle cx="7" cy="-5" r="3.5" fill="#fff"/>
+                    <circle cx="-7" cy="-4" r="1.8" fill="#1a2a2a"/>
+                    <circle cx="7" cy="-4" r="1.8" fill="#1a2a2a"/>
+                    <!-- smile -->
+                    <path d="M-5 4 Q 0 8 5 4" stroke="#1a3a2a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                    <!-- tentacles -->
+                    <g stroke="#3ecf7a" stroke-width="4" stroke-linecap="round" fill="none">
+                      <path d="M-18 10 Q -22 20 -18 28"/>
+                      <path d="M-9 15 Q -11 25 -7 32"/>
+                      <path d="M0 16 Q 0 26 2 34"/>
+                      <path d="M9 15 Q 11 25 7 32"/>
+                      <path d="M18 10 Q 22 20 18 28"/>
+                    </g>
+                  </g>
+                  <!-- player peeking -->
+                  <g transform="translate(35 110)">
+                    <rect width="18" height="22" rx="2" fill="#f5c948" stroke="#6b4e00" stroke-width="1.5"/>
+                    <circle cx="6" cy="9" r="1.2" fill="#1a1a1a"/>
+                    <circle cx="12" cy="9" r="1.2" fill="#1a1a1a"/>
+                    <path d="M5 15 Q 9 18 13 15" stroke="#2a1f00" stroke-width="1" fill="none"/>
+                  </g>
+                </svg>
+                <div class="comic-speech left">INKY BIN!</div>
+              </figure>
+              <!-- Panel 3 -->
+              <figure class="comic-frame" id="comic-p3">
+                <div class="comic-caption top">The Drip runs for the pipes…</div>
+                <svg viewBox="0 0 200 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                  <defs>
+                    <radialGradient id="bg3" cx="40%" cy="50%" r="80%">
+                      <stop offset="0%" stop-color="#1a4a50"/>
+                      <stop offset="100%" stop-color="#04080c"/>
+                    </radialGradient>
+                    <radialGradient id="squidGlow2" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stop-color="#9fffc4" stop-opacity="0.8"/>
+                      <stop offset="100%" stop-color="#7ee2a8" stop-opacity="0"/>
+                    </radialGradient>
+                  </defs>
+                  <rect width="200" height="160" fill="url(#bg3)"/>
+                  <!-- glow -->
+                  <circle cx="55" cy="90" r="55" fill="url(#squidGlow2)"/>
+                  <!-- player + squid on left -->
+                  <g transform="translate(40 95)">
+                    <rect width="20" height="24" rx="2" fill="#f5c948" stroke="#6b4e00" stroke-width="1.5"/>
+                    <circle cx="6" cy="8" r="1.2" fill="#1a1a1a"/>
+                    <circle cx="13" cy="8" r="1.2" fill="#1a1a1a"/>
+                    <path d="M6 16 Q 10 19 14 16" stroke="#2a1f00" stroke-width="1" fill="none"/>
+                  </g>
+                  <g transform="translate(30 85)">
+                    <ellipse cx="0" cy="0" rx="10" ry="9" fill="#3ecf7a" stroke="#1a6a3a" stroke-width="1.4"/>
+                    <circle cx="-3" cy="-1" r="1.8" fill="#fff"/>
+                    <circle cx="3" cy="-1" r="1.8" fill="#fff"/>
+                    <circle cx="-3" cy="-1" r="0.9" fill="#000"/>
+                    <circle cx="3" cy="-1" r="0.9" fill="#000"/>
+                    <g stroke="#3ecf7a" stroke-width="2" stroke-linecap="round" fill="none">
+                      <path d="M-8 6 Q -10 12 -8 16"/>
+                      <path d="M-3 8 Q -4 14 -2 18"/>
+                      <path d="M3 8 Q 4 14 2 18"/>
+                      <path d="M8 6 Q 10 12 8 16"/>
+                    </g>
+                  </g>
+                  <!-- drip zooming right, fading -->
+                  <g transform="translate(155 70)" opacity="0.65">
+                    <path d="M-14 58 C -20 18 -12 -2 0 -4 C 12 -2 20 18 14 58 Z" fill="#0a1a24" stroke="#1a3a4a" stroke-width="1.2"/>
+                    <circle cx="-4" cy="14" r="1.6" fill="#d9f0ff"/>
+                    <circle cx="4" cy="14" r="1.6" fill="#d9f0ff"/>
+                    <path d="M-6 20 Q 0 24 6 20" stroke="#d9f0ff" stroke-width="1.2" fill="none"/>
+                  </g>
+                  <!-- speed lines -->
+                  <g stroke="#7ab0ff" stroke-width="2" stroke-linecap="round" opacity="0.7">
+                    <line x1="105" y1="50" x2="135" y2="50"/>
+                    <line x1="95" y1="75" x2="130" y2="75"/>
+                    <line x1="105" y1="100" x2="135" y2="100"/>
+                    <line x1="115" y1="125" x2="140" y2="125"/>
+                  </g>
+                  <!-- pipe on far right -->
+                  <rect x="185" y="40" width="15" height="80" fill="#5a6a7a" stroke="#2a3540" stroke-width="1.5"/>
+                </svg>
+                <div class="comic-speech right squish">EEEK!</div>
+              </figure>
+            </div>
+            <div class="comic-footer">
+              <div class="comic-tip">Stay near Inky Bin. The Drip won't touch you.</div>
+              <button id="btn-comic-close" class="btn-primary">Got it (E / Space)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlay: Collectibles gallery -->
+        <div id="overlay-collectibles" class="overlay hidden">
+          <div class="overlay-content collectibles-panel">
+            <div class="collectibles-title">Collectibles</div>
+            <div class="collectibles-sub">Story beats you’ve unlocked.</div>
+            <div class="collectibles-list" id="collectibles-list"></div>
+            <button id="btn-collectibles-close" class="btn-ghost">Close (E / Esc)</button>
+          </div>
+        </div>
+
+        <!-- Overlay: Level 2 end -->
+        <div id="overlay-l2-end" class="overlay hidden">
+          <div class="overlay-content end-panel">
+            <div class="end-title l2">LEVEL 2 COMPLETE</div>
+            <div class="end-sub">The flood recedes. You and Inky Bin climb.</div>
+            <div class="reward-chest" id="l2-reward-chest"></div>
+            <div class="end-speaker">"Three symbols down. Something is waiting above. It has one eye."</div>
+            <div class="end-buttons">
+              <button id="btn-l2-replay" class="btn-ghost">Replay Level 2</button>
+              <button id="btn-level3" class="btn-primary">Climb to Level 3 →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlay: Level 2 valve lock -->
+        <div id="overlay-valve" class="overlay hidden">
+          <div class="overlay-content valve-panel">
+            <div class="valve-title">CONTROL PANEL</div>
+            <div class="valve-sub" id="valve-sub">Match each wheel to the gauge reading you found.</div>
+            <div class="valve-wheels">
+              <div class="vwheel" data-w="0">
+                <div class="vwheel-label">RED valve</div>
+                <button class="vw-btn" data-w="0" data-dir="-1">◀</button>
+                <div class="vw-num" id="vw0">0</div>
+                <button class="vw-btn" data-w="0" data-dir="1">▶</button>
+              </div>
+              <div class="vwheel" data-w="1">
+                <div class="vwheel-label">BLUE valve</div>
+                <button class="vw-btn" data-w="1" data-dir="-1">◀</button>
+                <div class="vw-num" id="vw1">0</div>
+                <button class="vw-btn" data-w="1" data-dir="1">▶</button>
+              </div>
+              <div class="vwheel" data-w="2">
+                <div class="vwheel-label">YELLOW valve</div>
+                <button class="vw-btn" data-w="2" data-dir="-1">◀</button>
+                <div class="vw-num" id="vw2">0</div>
+                <button class="vw-btn" data-w="2" data-dir="1">▶</button>
+              </div>
+            </div>
+            <button id="btn-valve-try" class="btn-primary">Turn the handles</button>
+            <div class="valve-status" id="valve-status"></div>
+            <button id="btn-valve-close" class="btn-ghost">Back away (Esc)</button>
+          </div>
+        </div>
+
+        <!-- Overlay: Level 2 symbol cipher -->
+        <div id="overlay-cipher" class="overlay hidden">
+          <div class="overlay-content cipher-panel">
+            <div class="cipher-title">PIPE SEQUENCER</div>
+            <div class="cipher-sub" id="cipher-sub">Turn the pipes in the order the water fills them.</div>
+            <div class="cipher-pipes">
+              <button class="pipe-btn" data-symbol="wave">
+                <svg viewBox="0 0 64 64"><path d="M6 34c6-10 12-10 18 0s12 10 18 0 12-10 18 0" stroke="#7ad7ff" stroke-width="5" fill="none" stroke-linecap="round"/></svg>
+                <span>wave</span>
+              </button>
+              <button class="pipe-btn" data-symbol="bubble">
+                <svg viewBox="0 0 64 64"><circle cx="32" cy="34" r="16" fill="#bff0ff" stroke="#1a1a22" stroke-width="2"/><circle cx="26" cy="28" r="4" fill="#ffffff"/></svg>
+                <span>bubble</span>
+              </button>
+              <button class="pipe-btn" data-symbol="fish">
+                <svg viewBox="0 0 64 64"><path d="M8 34c6-10 22-14 34-10l10-6v28l-10-6c-12 4-28 0-34-6z" fill="#7ee27e" stroke="#1a1a22" stroke-width="2"/><circle cx="20" cy="30" r="2" fill="#1a1a22"/></svg>
+                <span>fish</span>
+              </button>
+              <button class="pipe-btn" data-symbol="anchor">
+                <svg viewBox="0 0 64 64"><circle cx="32" cy="14" r="5" fill="none" stroke="#cfd8dc" stroke-width="3"/><path d="M32 19v32m-14-14c0 10 6 14 14 14s14-4 14-14M20 28h24" stroke="#cfd8dc" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
+                <span>anchor</span>
+              </button>
+            </div>
+            <div class="cipher-progress" id="cipher-progress">
+              <div class="cipher-slot" data-i="0">?</div>
+              <div class="cipher-slot" data-i="1">?</div>
+              <div class="cipher-slot" data-i="2">?</div>
+              <div class="cipher-slot" data-i="3">?</div>
+            </div>
+            <div class="cipher-status" id="cipher-status"></div>
+            <button id="btn-cipher-close" class="btn-ghost">Back away (Esc)</button>
+          </div>
+        </div>
+
+        <!-- Overlay: caught -->
+        <div id="overlay-caught" class="overlay hidden">
+          <div class="overlay-content caught-panel">
+            <div class="caught-face">
+              <div class="eye"></div>
+              <div class="eye"></div>
+              <div class="mouth"></div>
+            </div>
+            <div class="caught-whisper" id="caught-whisper">"Found you."</div>
+            <button id="btn-retry" class="btn-primary">Try Again</button>
+          </div>
+        </div>
+
+        <!-- Overlay: Level 4 title -->
+        <div id="overlay-l4-title" class="overlay hidden">
+          <div class="overlay-content l3-title-panel">
+            <div class="title-brand l3" style="color:#a080ff;">THE BASEMENT</div>
+            <div class="title-sub l3" style="color:#c0a8ff;">Level 4 — Two Shadows, One Way Out</div>
+            <div class="title-body">
+              The cellar door creaks open. Stone walls. Cold air.<br />
+              Two of them down here now — <b style="color:#ff7a5a">Ex Preshon</b> roams the halls,<br />
+              and his girlfriend <b style="color:#ff8ac0">EXLENA</b> — the daycare teacher, pink and horned, afraid of keys.
+            </div>
+            <div class="title-body" style="margin-top:16px;font-size:13px;line-height:1.55;color:#d8c8ff;text-align:left;max-width:560px;margin-left:auto;margin-right:auto;">
+              <b style="color:#c0a8ff;">How to escape Level 4:</b>
+              <ol style="margin:6px 0 0 18px;padding:0;">
+                <li>Collect <b>4 SKELETON KEYS</b> hidden across three chambers.</li>
+                <li>Light the <b>3 candle sconces</b> in the right order (clue: the candle-note shows the order).</li>
+                <li>Reach the <b>FURNACE HATCH</b> at the bottom — it unlocks once keys + candles are done.</li>
+                <li>Grab <b>STAR TOKENS</b> for bonus score (15 scattered).</li>
+              </ol>
+              <b style="color:#ffae5a;display:block;margin-top:10px;">The monsters:</b>
+              <ul style="margin:6px 0 0 18px;padding:0;">
+                <li><b>Ex Preshon</b> — same rules. Torch scares him off.</li>
+                <li><b>EXLENA</b> — the teacher. Torch doesn't scare her. But HOLDING A KEY makes her back off.</li>
+              </ul>
+            </div>
+            <button id="btn-l4-start" class="btn-primary" style="margin-top:14px;background:linear-gradient(180deg,#8060e0,#5a3ec0);">Open the Cellar Door</button>
+            <div class="controls-hint">
+              <div><b>WASD</b> move · <b>E/Space</b> interact · <b>F</b> flashlight</div>
+              <div>Keys are shiny — grab them quickly and EXLENA keeps her distance</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlay: Level 4 end -->
+        <div id="overlay-l4-end" class="overlay hidden">
+          <div class="overlay-content end-panel">
+            <div class="end-title l3" style="color:#c0a8ff;">LEVEL 4 COMPLETE</div>
+            <div class="end-sub">The furnace roars to life. The shadows shrink back.</div>
+            <div class="reward-chest" id="l4-reward-chest"></div>
+            <div class="end-speaker">"Four shadows. Four keys. You kept moving. That's the trick."</div>
+            <div class="end-buttons">
+              <button id="btn-l4-replay" class="btn-ghost">Replay Level 4</button>
+              <button id="btn-l4-next" class="btn-primary">Continue → Level 5</button>
+              <button id="btn-l4-home" class="btn-ghost">Back to Title</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlay: Level 5 intro cutscene -->
+        <div id="overlay-l5-intro" class="overlay hidden">
+          <div class="overlay-content" style="max-width:540px;background:#140a1e;border:2px solid #ffd84a;">
+            <div id="l5-intro-title" style="font:800 22px system-ui;color:#ffd84a;margin-bottom:10px;">The Naughty Room</div>
+            <div id="l5-intro-text" style="font:400 15px/1.55 system-ui;color:#f2e6d0;margin-bottom:16px;">Loading...</div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+              <button id="btn-l5-intro-skip" class="btn-ghost">Skip</button>
+              <button id="btn-l5-intro-next" class="btn-primary" style="background:#ffd84a;color:#1a1024;">Next →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlay: Level 5 end -->
+        <div id="overlay-l5-end" class="overlay hidden">
+          <div class="overlay-content end-panel">
+            <div class="end-title l3" style="color:#ffd84a;">LEVEL 5 COMPLETE</div>
+            <div class="end-sub">Thistle is free. She's coming with us now.</div>
+            <div class="end-speaker">Thistle: "I'm never stopping smiling again. Let's get everyone out of this place."</div>
+            <div class="end-buttons">
+              <button id="btn-l5-replay" class="btn-ghost">Replay Level 5</button>
+              <button id="btn-l5-next" class="btn-primary">Continue → Level 6</button>
+              <button id="btn-l5-home" class="btn-ghost">Back to Title</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlay: Level 6 intro -->
+        <div id="overlay-l6-intro" class="overlay hidden">
+          <div class="overlay-content" style="max-width:540px;background:#140a1e;border:2px solid #6fe0c5;">
+            <div id="l6-intro-title" style="font:800 22px system-ui;color:#6fe0c5;margin-bottom:10px;">Socky Shok's Room</div>
+            <div id="l6-intro-text" style="font:400 15px/1.55 system-ui;color:#f2e6d0;margin-bottom:16px;">Loading...</div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+              <button id="btn-l6-intro-skip" class="btn-ghost">Skip</button>
+              <button id="btn-l6-intro-next" class="btn-primary" style="background:#6fe0c5;color:#0a1820;">Next →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlay: Level 6 end -->
+        <div id="overlay-l6-end" class="overlay hidden">
+          <div class="overlay-content end-panel">
+            <div class="end-title l3" style="color:#6fe0c5;">LEVEL 6 COMPLETE</div>
+            <div class="end-sub">Socky Shok unplugged. No more pretending.</div>
+            <div class="end-speaker">Thistle: "He was always wobbly. I knew it."</div>
+            <div class="end-buttons">
+              <button id="btn-l6-replay" class="btn-ghost">Replay Level 6</button>
+              <button id="btn-l6-next" class="btn-primary">Continue → Level 7</button>
+              <button id="btn-l6-home" class="btn-ghost">Back to Title</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlay: Level 7 intro -->
+        <div id="overlay-l7-intro" class="overlay hidden">
+          <div class="overlay-content" style="max-width:540px;background:#140a1e;border:2px solid #ff7a45;">
+            <div id="l7-intro-title" style="font:800 22px system-ui;color:#ff7a45;margin-bottom:10px;">Blacky Pants</div>
+            <div id="l7-intro-text" style="font:400 15px/1.55 system-ui;color:#f2e6d0;margin-bottom:16px;">Loading...</div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+              <button id="btn-l7-intro-skip" class="btn-ghost">Skip</button>
+              <button id="btn-l7-intro-next" class="btn-primary" style="background:#ff7a45;color:#1a1024;">Next →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlay: Level 7 end -->
+        <div id="overlay-l7-end" class="overlay hidden">
+          <div class="overlay-content end-panel">
+            <div class="end-title l3" style="color:#65d07a;">LEVEL 7 COMPLETE</div>
+            <div class="end-sub">Blacky Pants is a soft, mossy boulder now. Snoozing.</div>
+            <div class="end-speaker">"Elements — all four. Nice work, team."</div>
+            <div class="end-buttons">
+              <button id="btn-l7-replay" class="btn-ghost">Replay Level 7</button>
+              <button id="btn-l7-next" class="btn-primary">Continue → Level 8</button>
+              <button id="btn-l7-home" class="btn-ghost">Back to Title</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlay: Level 8 intro -->
+        <div id="overlay-l8-intro" class="overlay hidden">
+          <div class="overlay-content" style="max-width:540px;background:#140a1e;border:2px solid #e34d6f;">
+            <div id="l8-intro-title" style="font:800 22px system-ui;color:#e34d6f;margin-bottom:10px;">The Final Match</div>
+            <div id="l8-intro-text" style="font:400 15px/1.55 system-ui;color:#f2e6d0;margin-bottom:16px;">Loading...</div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+              <button id="btn-l8-intro-skip" class="btn-ghost">Skip</button>
+              <button id="btn-l8-intro-next" class="btn-primary" style="background:#e34d6f;color:#fff;">Next →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlay: Level 4 Bargain Bin (early shop — teaches kids that saving helps) -->
+        <div id="overlay-l4-shop" class="overlay hidden">
+          <div class="overlay-content" style="max-width:520px;background:#140a1e;color:#f2e8ff;border:2px solid #6b4aa0;border-radius:12px;padding:24px;">
+            <div style="font:800 24px/1.1 'Creepster',system-ui;color:#ffd84a;text-align:center;margin-bottom:6px;">BARGAIN BIN</div>
+            <div style="font:500 14px system-ui;opacity:0.85;text-align:center;margin-bottom:14px;">Inky Bin: "Early shop! Small help now — or save up for later. Up to you."</div>
+            <div style="text-align:center;font:700 16px system-ui;color:#ffd84a;margin-bottom:14px;">You have <span id="l4-shop-coin-count">0</span> coins</div>
+            <div id="l4-shop-items" style="display:flex;flex-direction:column;gap:10px;"></div>
+            <div style="text-align:center;margin-top:18px;">
+              <button id="btn-l4-shop-done" class="btn-primary" style="background:#ffd84a;color:#1a1024;padding:10px 24px;font:700 15px system-ui;border:none;border-radius:8px;cursor:pointer;">Keep Going (E / Space)</button>
+              <div style="margin-top:10px;font:500 12px system-ui;color:#b5a3d0;">Tip: saving your coins unlocks stronger gear before the final boss.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlay: Level 7 shop (spend coins on upgrades before the final battle) -->
+        <div id="overlay-l7-shop" class="overlay hidden">
+          <div class="overlay-content" style="max-width:560px;background:#140a1e;color:#f2e8ff;border:2px solid #6b4aa0;border-radius:12px;padding:24px;">
+            <div style="font:800 26px/1.1 'Creepster',system-ui;color:#ffd84a;text-align:center;margin-bottom:6px;">GRABPACK UPGRADES</div>
+            <div style="font:500 14px system-ui;opacity:0.85;text-align:center;margin-bottom:16px;">Thistle: "Spend your coins before we face Blacky Pants. Be brave."</div>
+            <div id="shop-coins" style="text-align:center;font:700 16px system-ui;color:#ffd84a;margin-bottom:14px;">You have <span id="shop-coin-count">0</span> coins</div>
+            <div id="shop-items" style="display:flex;flex-direction:column;gap:10px;"></div>
+            <div style="text-align:center;margin-top:18px;">
+              <button id="btn-shop-done" class="btn-primary" style="background:#ffd84a;color:#1a1024;padding:10px 24px;font:700 15px system-ui;border:none;border-radius:8px;cursor:pointer;">Enter the Battle →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlay: Level 8 end / credits trigger -->
+        <div id="overlay-l8-end" class="overlay hidden">
+          <div class="overlay-content end-panel">
+            <div class="end-title l3" style="color:#ffd84a;">WE WON</div>
+            <div class="end-sub">Mum is free. The Horridors are finished. Chapter 1 complete.</div>
+            <div class="end-speaker">Mum: "My brave, brave Chester — you came for me. Let's go home."</div>
+            <div class="end-buttons">
+              <button id="btn-l8-credits" class="btn-primary" style="background:#ffd84a;color:#1a1024;">Roll Credits ★</button>
+              <button id="btn-l8-home" class="btn-ghost">Back to Title</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Credits overlay -->
+        <div id="overlay-credits" class="overlay hidden" style="background:#000;">
+          <div id="credits-root" style="position:absolute;inset:0;overflow:hidden;color:#fff;font-family:system-ui;">
+            <div id="credits-scroll" style="position:absolute;left:0;right:0;bottom:-100%;padding:40px 20px;text-align:center;"></div>
+            <button id="btn-credits-close" style="position:absolute;bottom:12px;right:12px;padding:8px 16px;background:rgba(255,255,255,0.1);color:#fff;border:1px solid #666;border-radius:6px;cursor:pointer;font:600 12px system-ui;">Back to Title</button>
+            <button id="btn-credits-skip" style="position:absolute;bottom:12px;left:12px;padding:8px 16px;background:rgba(255,255,255,0.1);color:#fff;border:1px solid #666;border-radius:6px;cursor:pointer;font:600 12px system-ui;">Skip ⏭</button>
+          </div>
+        </div>
+
+        <!-- Overlay: Level 4 candle puzzle -->
+        <div id="overlay-candles" class="overlay hidden">
+          <div class="overlay-content mirror-panel">
+            <div class="mirror-title" style="color:#ffb864;">THE CANDLE SCONCES</div>
+            <div class="mirror-sub" id="candle-sub">Light the three sconces in the correct order.</div>
+            <div class="mirror-board" id="candle-board" style="grid-template-columns:repeat(3,80px);"></div>
+            <div class="mirror-status" id="candle-status"></div>
+            <button id="btn-candles-close" class="btn-ghost">Back away (Esc)</button>
+          </div>
+        </div>
+
+        <!-- Mute button -->
+        <button id="btn-mute" class="ui-layer" aria-label="Mute">🔊</button>
+      </div>
+    </div>
+
+    <!-- Portrait orientation nudge (touch devices only) -->
+    <div id="orient-hint" aria-live="polite">
+      <div class="panel">
+        <div class="icon">📱↻</div>
+        <h2>Rotate Your Phone</h2>
+        <p>Horridors plays best in landscape mode. Turn your phone sideways to begin.</p>
+      </div>
+    </div>
+
+    <script src="./shared-audio.js"></script>
+    <script src="./shared-music.js"></script>
+    <script src="./shared-story.js"></script>
+    <script src="./shared-tasks.js"></script>
+    <script src="./shared-wallet.js"></script>
+    <script src="./shared-sprites.js"></script>
+    <script src="./game.js" type="module"></script>
+    <script src="./level2.js" type="module"></script>
+    <script src="./level3.js" type="module"></script>
+    <script src="./level4.js" type="module"></script>
+    <script src="./level5.js" type="module"></script>
+    <script src="./level6.js" type="module"></script>
+    <script src="./level7.js" type="module"></script>
+    <script src="./level8.js" type="module"></script>
+    <script src="./credits.js" type="module"></script>
+    <script src="./shared-touch.js"></script>
+    <script src="./fullscreen.js"></script>
+    <script src="./pwa-register.js"></script>
+  </body>
+</html>

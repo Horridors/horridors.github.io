@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Horridors 3D — Level 2</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --font-display: 'Cabinet Grotesk', system-ui, sans-serif;
+        --font-body: 'Inter', system-ui, sans-serif;
+        --color-bg: #0a0d14;
+        --color-surface: rgba(18, 22, 32, 0.78);
+        --color-border: rgba(255, 255, 255, 0.12);
+        --color-text: #e8ecf4;
+        --color-muted: #8892a8;
+        --color-primary: #2fc6b8;  /* teal — Socky accent */
+        --color-warn: #ffaa22;
+        --color-danger: #ff4466;
+        --panel-radius: 10px;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0; padding: 0; height: 100%;
+        background: var(--color-bg);
+        color: var(--color-text);
+        font-family: var(--font-body);
+        overflow: hidden;
+        user-select: none;
+      }
+      #app {
+        position: fixed; inset: 0;
+        display: grid; place-items: center;
+        background: radial-gradient(ellipse at center, #131a27 0%, #060810 70%);
+      }
+      #stage {
+        position: relative;
+        width: 100%; height: 100%;
+      }
+      canvas { display: block; width: 100%; height: 100%; }
+
+      /* HUD */
+      .ui { position: absolute; pointer-events: none; font-family: var(--font-body); }
+      .ui.interactive { pointer-events: auto; }
+
+      #hud-top {
+        top: 12px; left: 12px; right: 12px;
+        display: flex; justify-content: space-between; align-items: flex-start;
+        gap: 12px;
+      }
+      .hud-card {
+        background: var(--color-surface);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--color-border);
+        border-radius: var(--panel-radius);
+        padding: 10px 14px;
+        font-size: 14px;
+        line-height: 1.25;
+      }
+      .hud-card .label {
+        font-size: 10px; font-weight: 700;
+        letter-spacing: 0.14em; text-transform: uppercase;
+        color: var(--color-muted);
+      }
+      .hud-card .value {
+        font-variant-numeric: tabular-nums lining-nums;
+        font-weight: 600; color: var(--color-text);
+      }
+      .hud-row { display: flex; gap: 10px; align-items: center; }
+
+      #coin-readout .num { font-weight: 700; color: #ffd65a; }
+
+      #elem-bar {
+        display: flex; gap: 6px; margin-top: 6px;
+      }
+      .elem-chip {
+        width: 34px; height: 34px;
+        display: grid; place-items: center;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        font-size: 17px;
+        position: relative;
+        transition: all 160ms ease;
+      }
+      .elem-chip.locked { filter: grayscale(1) brightness(0.4); }
+      .elem-chip.active { border-color: var(--color-primary); box-shadow: 0 0 0 2px rgba(47,198,184,0.35); }
+      .elem-chip .hotkey {
+        position: absolute; bottom: -3px; right: -3px;
+        font-size: 9px; font-weight: 700;
+        background: rgba(0,0,0,0.7); padding: 1px 4px; border-radius: 4px;
+        color: var(--color-muted);
+      }
+
+      #objective-card { max-width: 300px; text-align: right; }
+      #objective-card .objective { font-weight: 600; }
+
+      /* Prompt */
+      #prompt {
+        left: 50%; bottom: 80px; transform: translateX(-50%);
+        background: rgba(10, 14, 22, 0.85);
+        border: 1px solid var(--color-primary);
+        color: var(--color-text);
+        padding: 10px 16px; border-radius: 999px;
+        font-size: 14px; font-weight: 600;
+        opacity: 0; transition: opacity 160ms ease;
+      }
+      #prompt.show { opacity: 1; }
+      #prompt kbd {
+        background: var(--color-primary); color: #0a0d14;
+        padding: 2px 8px; border-radius: 5px; font-weight: 700;
+        font-family: var(--font-body); margin-right: 6px;
+      }
+
+      /* Subtitle */
+      #subtitle {
+        left: 50%; bottom: 24px; transform: translateX(-50%);
+        max-width: 70%;
+        background: rgba(10, 14, 22, 0.85);
+        padding: 10px 18px; border-radius: 8px;
+        font-size: 15px; text-align: center;
+        opacity: 0; transition: opacity 200ms ease;
+      }
+      #subtitle.show { opacity: 1; }
+      #subtitle .speaker {
+        display: block;
+        font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+        color: var(--color-primary); font-weight: 700; margin-bottom: 2px;
+      }
+
+      /* Tasks button + drawer */
+      #btn-tasks {
+        pointer-events: auto;
+        position: absolute; bottom: 18px; left: 18px;
+        background: var(--color-surface); border: 1px solid var(--color-border);
+        color: var(--color-text); padding: 10px 16px; border-radius: 8px;
+        cursor: pointer; font-family: var(--font-body); font-weight: 600; font-size: 13px;
+        backdrop-filter: blur(10px);
+      }
+      #btn-tasks:hover { border-color: var(--color-primary); }
+
+      .overlay {
+        position: absolute; inset: 0;
+        background: rgba(4, 6, 12, 0.78);
+        backdrop-filter: blur(6px);
+        display: grid; place-items: center;
+        pointer-events: auto;
+        z-index: 50;
+      }
+      .overlay.hidden { display: none; }
+      .panel {
+        background: #121624;
+        border: 1px solid var(--color-border);
+        border-radius: 14px;
+        padding: 28px 32px;
+        min-width: 340px; max-width: 520px;
+        max-height: 80vh; overflow-y: auto;
+      }
+      .panel h2 {
+        font-family: var(--font-display); margin: 0 0 16px;
+        font-size: 22px; font-weight: 800;
+      }
+      .task-list { list-style: none; padding: 0; margin: 0 0 16px; }
+      .task-list li {
+        padding: 8px 0; font-size: 14px;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+      }
+      .task-list li.done { color: var(--color-muted); text-decoration: line-through; }
+      .task-list li::before {
+        content: '○'; margin-right: 10px; color: var(--color-muted);
+      }
+      .task-list li.done::before { content: '●'; color: var(--color-primary); }
+
+      .btn {
+        background: var(--color-primary); color: #061013;
+        border: none; border-radius: 8px; padding: 10px 20px;
+        font-family: var(--font-body); font-weight: 700; font-size: 14px;
+        cursor: pointer;
+      }
+      .btn.ghost {
+        background: transparent; color: var(--color-text);
+        border: 1px solid var(--color-border);
+      }
+      .btn + .btn { margin-left: 10px; }
+
+      /* Title/menu screens */
+      #title-screen {
+        position: absolute; inset: 0; z-index: 60;
+        display: grid; place-items: center;
+        background: radial-gradient(ellipse at center, #0c1423 0%, #04070e 80%);
+        pointer-events: auto;
+      }
+      #title-screen.hidden { display: none; }
+      .title-inner { text-align: center; max-width: 540px; padding: 40px; }
+      .title-logo {
+        font-family: var(--font-display); font-weight: 900;
+        font-size: clamp(48px, 8vw, 86px); letter-spacing: 0.02em;
+        color: var(--color-primary);
+        text-shadow: 0 0 30px rgba(47, 198, 184, 0.35);
+        margin: 0 0 6px;
+      }
+      .title-sub {
+        font-size: 14px; letter-spacing: 0.3em; text-transform: uppercase;
+        color: var(--color-muted); margin: 0 0 40px;
+      }
+      .level-pick {
+        display: grid; gap: 10px;
+      }
+      .level-btn {
+        background: var(--color-surface); border: 1px solid var(--color-border);
+        border-radius: 10px; padding: 14px 20px;
+        color: var(--color-text); font-family: var(--font-body);
+        font-size: 14px; font-weight: 600; text-align: left;
+        cursor: pointer; transition: all 160ms ease;
+      }
+      .level-btn:hover { border-color: var(--color-primary); transform: translateX(2px); }
+      .level-btn.locked { opacity: 0.5; cursor: not-allowed; }
+      .level-btn .meta { display: block; font-size: 11px; color: var(--color-muted); margin-top: 2px; font-weight: 400; }
+      .level-btn.active { border-color: var(--color-primary); box-shadow: inset 0 0 0 1px var(--color-primary); }
+
+      /* Toast for picked-up items */
+      #toast {
+        position: absolute; top: 80px; left: 50%; transform: translateX(-50%) translateY(-20px);
+        background: rgba(18, 22, 32, 0.95);
+        border: 1px solid var(--color-primary);
+        padding: 12px 20px; border-radius: 10px;
+        font-size: 14px; font-weight: 600;
+        opacity: 0; transition: all 280ms ease;
+      }
+      #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+      /* Zap flash */
+      #zap-flash {
+        position: absolute; inset: 0; background: #fff;
+        pointer-events: none; opacity: 0;
+        transition: opacity 120ms ease;
+      }
+
+      /* Back button */
+      #btn-menu {
+        pointer-events: auto;
+        position: absolute; bottom: 18px; right: 18px;
+        background: rgba(18,22,32,0.78); color: var(--color-muted);
+        border: 1px solid var(--color-border);
+        border-radius: 8px; padding: 8px 14px; font-size: 12px;
+        cursor: pointer; font-family: var(--font-body);
+        backdrop-filter: blur(10px);
+      }
+      #btn-menu:hover { color: var(--color-text); border-color: var(--color-primary); }
+
+      /* Debug */
+      #debug {
+        position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+        font-size: 10px; color: var(--color-muted); font-family: ui-monospace, monospace;
+        font-variant-numeric: tabular-nums;
+        display: none;
+      }
+      #debug.show { display: block; }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="stage">
+        <canvas id="gl"></canvas>
+
+        <!-- HUD -->
+        <div id="hud-top" class="ui">
+          <div class="hud-card">
+            <div class="hud-row">
+              <div>
+                <div class="label">Tool</div>
+                <div class="value" id="tool-readout">🔦 Flashlight</div>
+              </div>
+              <div style="width:1px; height:28px; background:var(--color-border);"></div>
+              <div>
+                <div class="label">Coins</div>
+                <div class="value" id="coin-readout"><span class="num">0</span></div>
+              </div>
+            </div>
+            <div id="elem-bar" style="display:none;">
+              <div class="elem-chip locked" data-e="fire">🔥<span class="hotkey">1</span></div>
+              <div class="elem-chip locked" data-e="thunder">⚡<span class="hotkey">2</span></div>
+              <div class="elem-chip locked" data-e="earth">🌱<span class="hotkey">3</span></div>
+              <div class="elem-chip locked" data-e="water">💧<span class="hotkey">4</span></div>
+              <div class="elem-chip locked" data-e="air">💨<span class="hotkey">5</span></div>
+            </div>
+          </div>
+          <div class="hud-card" id="objective-card">
+            <div class="label">Objective</div>
+            <div class="value objective" id="objective">Explore the flooded sublevel.</div>
+          </div>
+        </div>
+
+        <div id="prompt" class="ui"><kbd>E</kbd><span id="prompt-text">Interact</span></div>
+        <div id="subtitle" class="ui"><span class="speaker" id="sub-speaker"></span><span id="sub-text"></span></div>
+        <div id="toast" class="ui"></div>
+        <div id="zap-flash"></div>
+
+        <button id="btn-tasks" class="ui interactive">✅ Tasks (T)</button>
+        <button id="btn-menu" class="ui interactive">Menu</button>
+        <div id="debug" class="ui"></div>
+
+        <!-- Tasks overlay -->
+        <div id="overlay-tasks" class="overlay hidden">
+          <div class="panel">
+            <h2>Level 2 — Checklist</h2>
+            <ul class="task-list" id="task-list"></ul>
+            <button class="btn ghost" id="close-tasks">Close</button>
+          </div>
+        </div>
+
+        <!-- Stub level overlay -->
+        <div id="overlay-stub" class="overlay hidden">
+          <div class="panel">
+            <h2 id="stub-title">Coming soon in 3D</h2>
+            <p id="stub-body" style="color:var(--color-muted); line-height:1.55;">
+              This level is still being ported to 3D. For now, only Level 2 is playable in the 3D engine.
+            </p>
+            <p style="color:var(--color-muted); font-size: 12px;">
+              Want to try the original 2D version? It's still available at
+              <a href="./index-2d.html" style="color:var(--color-primary);">index-2d.html</a>.
+            </p>
+            <button class="btn" id="stub-back">Back to menu</button>
+          </div>
+        </div>
+
+        <!-- Title/level select -->
+        <div id="title-screen">
+          <div class="title-inner">
+            <h1 class="title-logo">HORRIDORS</h1>
+            <p class="title-sub">— 3D —</p>
+            <div class="level-pick">
+              <button class="level-btn locked" data-level="1">
+                <strong>Level 1</strong> — The Red Keycard Hall
+                <span class="meta">Coming soon in 3D · 2D version in menu link</span>
+              </button>
+              <button class="level-btn active" data-level="2">
+                <strong>Level 2</strong> — The Flooded Sublevel
+                <span class="meta">Playable · Socky Shok + Grabpack</span>
+              </button>
+              <button class="level-btn locked" data-level="3">
+                <strong>Level 3</strong> — The Toy Room
+                <span class="meta">Coming soon in 3D</span>
+              </button>
+              <button class="level-btn locked" data-level="4">
+                <strong>Level 4</strong> — Ex Preshon
+                <span class="meta">Coming soon in 3D</span>
+              </button>
+            </div>
+            <p style="margin-top: 28px; font-size: 11px; color: var(--color-muted);">
+              WASD or arrows to move · Mouse drag to orbit · E to interact · T for tasks · 1–5 to select element
+            </p>
+            <p style="margin-top: 6px; font-size: 11px; color: var(--color-muted);">
+              Prefer the original? <a href="./index-2d.html" style="color:var(--color-primary);">Play the 2D version</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="./engine3d.js"></script>
+  </body>
+</html>
