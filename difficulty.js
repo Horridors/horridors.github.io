@@ -82,6 +82,10 @@
       el.textContent = d.name;
       el.setAttribute('data-tier', d.id);
     });
+    // Nudge the gem pill to reflow after the coin pill resizes.
+    if (window.HorridorsStory && typeof window.HorridorsStory.repositionGemButton === 'function') {
+      window.HorridorsStory.repositionGemButton();
+    }
   }
 
   window.__difficulty = api;

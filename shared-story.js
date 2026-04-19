@@ -158,8 +158,10 @@
     const btn = document.createElement('button');
     btn.id = 'btn-gems';
     // Sits immediately to the right of the coin pill (top-left HUD cluster)
-    // so the top-right fullscreen button can't cover it.
-    btn.style.cssText = 'position:fixed;top:10px;left:150px;z-index:1001;padding:6px 12px;background:#1a1024;border:1px solid #ffd84a;color:#ffd84a;border-radius:999px;font:600 12px system-ui;cursor:pointer;';
+    // so the top-right fullscreen button can't cover it. Positioned after the
+    // coin pill's MEDIUM/HARD/etc. difficulty chip — re-anchored at runtime
+    // by repositionGemButton() so it never overlaps that chip.
+    btn.style.cssText = 'position:fixed;top:10px;left:190px;z-index:1001;padding:6px 12px;background:#1a1024;border:1px solid #ffd84a;color:#ffd84a;border-radius:999px;font:600 12px system-ui;cursor:pointer;';
     btn.innerHTML = '💎 Gems <span id="gem-count" style="background:#ffd84a;color:#1a1024;padding:1px 6px;border-radius:10px;margin-left:4px;font-weight:700;">0/' + GEMS.length + '</span>';
     btn.addEventListener('click', openGemGallery);
     (document.getElementById('game-frame') || document.body).appendChild(btn);
@@ -180,7 +182,29 @@
     ensureGemUI();
     const el = document.getElementById('gem-count');
     if (el) el.textContent = gemCount() + '/' + gemTotal();
+    repositionGemButton();
   }
+  // Re-anchor the gem pill to sit just past the coin pill's right edge. The
+  // coin pill width changes with the difficulty chip text (EASY vs EXTREME),
+  // so a fixed left: value can overlap. Call on resize, after difficulty
+  // changes, and after refreshGemButton().
+  function repositionGemButton() {
+    const btn = document.getElementById('btn-gems');
+    const coinPill = document.getElementById('hud-coins');
+    if (!btn || !coinPill) return;
+    const r = coinPill.getBoundingClientRect();
+    if (!r || r.width < 10) return; // not laid out yet
+    // 10px gutter between the coin pill and the gem pill
+    const leftPx = Math.round(r.right + 10);
+    btn.style.left = leftPx + 'px';
+  }
+  // Reposition on window resize and when difficulty/HUD updates happen later.
+  window.addEventListener('resize', repositionGemButton);
+  // Also reposition a short time after first paint, so the coin pill's
+  // difficulty chip has populated.
+  setTimeout(repositionGemButton, 0);
+  setTimeout(repositionGemButton, 200);
+  setTimeout(repositionGemButton, 800);
   function openGemGallery() {
     ensureGemUI();
     const list = document.getElementById('gems-list');
@@ -234,7 +258,7 @@
     progress: P,
     // gems
     GEMS, unlockGem, hasGem, gemCount, gemTotal,
-    openGemGallery, closeGemGallery, refreshGemButton,
+    openGemGallery, closeGemGallery, refreshGemButton, repositionGemButton,
   };
 
   // Paint initial coin counts on any existing coin HUDs now (in case HUD was drawn already)
