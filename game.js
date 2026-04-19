@@ -49,7 +49,7 @@ const state = {
   rewards: [],
   doorsOpen: { toy: false, puzzle: false, supply: false, lib: false, scanner: false },
   searched: new Set(),     // ids of furniture searched
-  chase: { active: false, t: 0, duration: 22 },
+  chase: { active: false, t: 0, duration: 22, expired: false },
   caughtBy: null,
   alarmFlash: 0,
   hidden: false,
@@ -751,6 +751,11 @@ function interact(target) {
     return;
   }
   if (target.kind === 'scanner') {
+    if (state.chase.expired && !state.doorsOpen.scanner) {
+      sfx('beep_low');
+      speak('Scanner: DEAD. Too late.', 2500);
+      return;
+    }
     if (!state.hasKeycard) {
       sfx('beep_low');
       speak('Scanner needs the RED keycard.', 2500);
@@ -943,9 +948,19 @@ function endChase() {
 }
 function tickChase(dt) {
   if (!state.chase.active) return;
+  const prevT = state.chase.t;
   state.chase.t -= dt;
   document.querySelector('.chase-bar-fill').style.width = `${Math.max(0, state.chase.t / state.chase.duration) * 100}%`;
   state.alarmFlash = (state.alarmFlash + dt) % 0.8;
+
+  // Time's up — scanner dies, monster surges. If the door is still shut, it stays shut forever.
+  if (prevT > 0 && state.chase.t <= 0 && !state.doorsOpen.scanner && !state.chase.expired) {
+    state.chase.expired = true;
+    monster.speed = (monster.speed || 140) * 1.6;
+    sfx('beep_low');
+    speak('The scanner goes dark. The door locks.', 2800);
+    setObjective('Too late. Hide or run.');
+  }
 
   // Move monster: chase player. Stay in corridor.
   const px = player.x + player.w/2, py = player.y + player.h/2;
@@ -1365,7 +1380,7 @@ function resetGame() {
   state.hasBattery = false; state.hasToyKey = false; state.hasLibKey = false; state.hasKeycard = false;
   state.batteryCount = 0; state.motherTriggered = false;
   state.puzzleSolved = false; state.comboSolved = false; state.notes = [];
-  state.searched.clear(); state.chase.active = false; state.alarmFlash = 0; state.hidden = false;
+  state.searched.clear(); state.chase.active = false; state.chase.expired = false; state.alarmFlash = 0; state.hidden = false;
   // New puzzle chain defaults: supply is entry (unlocked). Library/Puzzle/Toy all locked.
   state.doorsOpen = { toy: false, puzzle: false, supply: true, lib: false, scanner: false };
   for (const d of doors) {
@@ -1483,7 +1498,7 @@ function update(dt) {
     const label = target.kind === 'item' ? target.ref.prompt
       : target.kind === 'furn' ? target.ref.prompt
       : target.kind === 'door' ? (target.ref.locked ? `Locked: ${target.ref.room.name}` : (target.ref.open ? 'Walk through' : `Open ${target.ref.room.name}`))
-      : target.kind === 'scanner' ? (state.hasKeycard ? 'Scan keycard' : 'Locked — needs RED keycard')
+      : target.kind === 'scanner' ? (state.chase.expired && !state.doorsOpen.scanner ? 'Scanner DEAD — door sealed' : (state.hasKeycard ? 'Scan keycard' : 'Locked — needs RED keycard'))
       : '';
     showPrompt(`[E] ${label}`);
     if (wasPressed('e',' ')) interact(target);
@@ -1644,11 +1659,11 @@ function drawDoors() {
 
 function drawScannerDoor() {
   const r = { x: CORR_RIGHT - 6, y: CORR_TOP + 30, w: 18, h: 120 };
-  ctx.fillStyle = state.doorsOpen.scanner ? '#0a0a10' : '#3a1a1a';
+  ctx.fillStyle = state.doorsOpen.scanner ? '#0a0a10' : (state.chase.expired ? '#1a0a10' : '#3a1a1a');
   ctx.fillRect(r.x, r.y, r.w, r.h);
   if (!state.doorsOpen.scanner) {
-    // Red scanner panel
-    ctx.fillStyle = '#ff4a5a';
+    // Red scanner panel — goes dark when expired
+    ctx.fillStyle = state.chase.expired ? '#2a0a10' : '#ff4a5a';
     ctx.fillRect(r.x + 4, r.y + 50, 10, 20);
     ctx.fillStyle = '#100';
     ctx.fillRect(r.x + 6, r.y + 56, 6, 8);
