@@ -66,9 +66,11 @@
     keys: 0,                  // 0..4
     totalKeys: 4,
     candlePuzzleSolved: false,
-    candleOrder: [0, 1, 2],   // correct order
+    candleOrder: [0, 2, 1],   // FIXED story order: 1 → 3 → 2 (Mum's note spells it)
     candleProgress: 0,
     candleNoteRead: false,
+    shakeT: 0,                // screen-shake timer (ms) for wrong-candle feedback
+    shakeMag: 0,              // pixel magnitude for current shake
     stars: 0,
     starsTotal: 0,
     objectives: [
@@ -123,6 +125,11 @@
       case 'keypick': tone(520, 0.12, 'sine', 0.22); setTimeout(()=>tone(780, 0.14, 'sine', 0.22), 90); setTimeout(()=>tone(1040, 0.16, 'sine', 0.18), 180); break;
       case 'candle':  tone(440, 0.2, 'triangle', 0.18); setTimeout(()=>tone(660, 0.18, 'triangle', 0.16), 80); break;
       case 'bad':     tone(120, 0.3, 'sawtooth', 0.25); break;
+      case 'snuff':   // whoosh + low thud — more dramatic than 'bad'
+                      tone(260, 0.18, 'sawtooth', 0.14);
+                      setTimeout(()=>tone(110, 0.35, 'sawtooth', 0.22), 60);
+                      setTimeout(()=>tone(70,  0.45, 'square',   0.18), 140);
+                      break;
       case 'jingle':  [523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,0.18,'triangle',0.22), i*90)); break;
       case 'door':    tone(110, 0.3, 'square', 0.22); setTimeout(()=>tone(220, 0.2, 'square', 0.18), 150); break;
       case 'exlenahiss':tone(90, 0.4, 'sawtooth', 0.1); tone(130, 0.35, 'sawtooth', 0.08); break;
@@ -301,13 +308,9 @@
       items.push({ kind: 'gem', gemId: 'l4_keyring', gemColor: '#c09cff', x: 140, y: 1450, w: 18, h: 18, collected: false });
     }
 
-    // Randomize candle order (1-2-3 permutation)
-    const perm = [0, 1, 2];
-    for (let i = perm.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [perm[i], perm[j]] = [perm[j], perm[i]];
-    }
-    state.candleOrder = perm;
+    // FIXED story order (1 → 3 → 2) — Mum's note in the middle chamber spells it.
+    // Kept as state so render/UI can read it; NOT randomized anymore.
+    state.candleOrder = [0, 2, 1];
     state.candleProgress = 0;
     state.candlePuzzleSolved = false;
   }
@@ -411,6 +414,14 @@
     cam.y += (targetCamY - cam.y) * 0.18;
     cam.x = Math.max(0, Math.min(cam.x, WORLD_W - VIEW_W));
     cam.y = Math.max(0, Math.min(cam.y, WORLD_H - VIEW_H));
+    // Screen shake (wrong-candle feedback) — decay linearly, apply AFTER clamp so edges still jitter
+    if (state.shakeT > 0) {
+      state.shakeT -= dt * 1000;
+      const mag = state.shakeMag * Math.max(0, state.shakeT / 420);
+      cam.x += (Math.random() - 0.5) * 2 * mag;
+      cam.y += (Math.random() - 0.5) * 2 * mag;
+      if (state.shakeT <= 0) { state.shakeT = 0; state.shakeMag = 0; }
+    }
 
     // Spawn Ex Preshon once player moves a bit
     if (!expression.spawned && (player.x > 300 || player.y > 300)) {
@@ -458,13 +469,13 @@
       }
     }
 
-    // Candle note
+    // Candle note — Mum's handwriting reveals the fixed story order
     if (!candleNote.read && rectIntersect(player, candleNote)) {
       candleNote.read = true;
       state.candleNoteRead = true;
       state.objectives.find(o => o.id === 'note').done = true;
       const order = state.candleOrder.map(n => n + 1).join(' \u2192 ');
-      speak(`Note: "Light them ${order}." The candle order is revealed.`, 4500);
+      speak(`Mum's note: "Light them in this order — ${order}. Don't guess."`, 4800);
       sfx('pickup');
     }
 
@@ -493,11 +504,14 @@
               speak(`Candle ${c.id + 1} lit. ${3 - state.candleProgress} to go.`, 2000);
             }
           } else {
-            // Wrong order — reset
+            // Wrong order — dramatic reset: snuff sfx, shake, toast, show the order again
             for (const cc of candles) cc.lit = false;
             state.candleProgress = 0;
-            sfx('bad');
-            speak('Wrong candle! All of them snuff out. Try again.', 3000);
+            sfx('snuff');
+            state.shakeT = 420;
+            state.shakeMag = 8;
+            const order = state.candleOrder.map(n => n + 1).join(' \u2192 ');
+            speak(`Wrong candle! All sconces snuff out. Order: ${order}.`, 3400);
           }
           interacted = true;
           break;
