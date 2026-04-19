@@ -2994,6 +2994,85 @@ body.has-touch #touch-menu-btn { display: block; }
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
+.cert-daterow {
+  margin: -8px 0 18px 0;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  justify-content: center;
+}
+
+/* "Your Certificates" panel on the title screen */
+.cert-panel {
+  margin: 16px auto 8px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 215, 120, 0.25);
+  background: rgba(20, 14, 8, 0.55);
+  border-radius: 10px;
+  max-width: 520px;
+}
+.cert-panel.hidden { display: none; }
+.cert-panel-label {
+  font: 600 11px/1 system-ui, sans-serif;
+  color: #e5cf8a;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  text-align: center;
+}
+.cert-panel-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.cert-panel-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f1e8d2;
+  font: 600 12px/1 system-ui, sans-serif;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+.cert-panel-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 215, 120, 0.45);
+}
+.cert-panel-btn-tier {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font: 700 10px/1 system-ui, sans-serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fff;
+}
+.cert-panel-btn-tier[data-tier="easy"]    { background: #1f8a3a; }
+.cert-panel-btn-tier[data-tier="medium"]  { background: #c68a18; }
+.cert-panel-btn-tier[data-tier="hard"]    { background: #c42a2a; }
+.cert-panel-btn-tier[data-tier="extreme"] { background: #7a28c4; }
+.cert-panel-btn-label {
+  font: 500 11px/1 system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  color: #e5dfcf;
+}
+.cert-date-label {
+  font: 500 11px/1 system-ui, sans-serif;
+  color: #7a6340;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.cert-date {
+  font: 600 14px/1 'Cormorant Garamond', Georgia, serif;
+  color: #2a241a;
+  letter-spacing: 0.02em;
+}
 .cert-sig {
   display: flex;
   justify-content: space-around;

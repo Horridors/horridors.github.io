@@ -1070,8 +1070,10 @@ function tickHide() {
 function endLevel() {
   state.scene = 'end';
   endChase();
-  // L1 completed — clear in-progress so re-entry starts fresh
+  // L1 completed — clear in-progress so re-entry starts fresh, and bake in
+  // the coins earned this run so a later death on L2 can't roll them back.
   if (window.__levelInProgress) window.__levelInProgress[1] = false;
+  if (window.__walletCommitLevelRun) window.__walletCommitLevelRun();
   const rewards = [];
   rewards.push('🪙 ' + state.coins + ' Corridor Tokens');
   if (state.notes.length > 0) rewards.push('📜 ' + state.notes.length + ' Notes Found');
@@ -1089,6 +1091,8 @@ const overlayTitle = document.getElementById('overlay-title');
 function startPlay() {
   ensureAudio();
   startAmbient();
+  // Snapshot coins at the very start of L1 so a death resets to this baseline.
+  if (window.__walletBeginLevelRun) window.__walletBeginLevelRun(1);
   overlayTitle.classList.add('hidden');
   state.scene = 'play';
   // If L1 was previously stopped (user left & came back), re-arm the loop.
@@ -1149,6 +1153,40 @@ document.getElementById('btn-start').addEventListener('click', () => {
 // Per-level progress map — flipped to true when real play begins, cleared on reset/complete.
 window.__levelInProgress = window.__levelInProgress || {1:false,2:false,3:false,4:false,5:false,6:false,7:false,8:false};
 
+// ---------- Wallet run-snapshot wiring (coins only stick on level complete) ----------
+// Snapshot coins when a level begins, restore them on death/retry, commit on complete.
+// The wallet module (shared-wallet.js) owns the state — we just fire the hooks here.
+function __walletBeginLevelRun(n) {
+  if (window.HorridorsWallet && window.HorridorsWallet.beginLevelRun) {
+    try { window.HorridorsWallet.beginLevelRun(n); } catch (e) {}
+  }
+}
+function __walletRestoreLevelRun() {
+  if (window.HorridorsWallet && window.HorridorsWallet.restoreLevelRun) {
+    try { window.HorridorsWallet.restoreLevelRun(); } catch (e) {}
+  }
+}
+function __walletCommitLevelRun() {
+  if (window.HorridorsWallet && window.HorridorsWallet.commitLevelRun) {
+    try { window.HorridorsWallet.commitLevelRun(); } catch (e) {}
+  }
+}
+window.__walletBeginLevelRun = __walletBeginLevelRun;
+window.__walletRestoreLevelRun = __walletRestoreLevelRun;
+window.__walletCommitLevelRun = __walletCommitLevelRun;
+
+// Global #btn-retry click — every level's "caught" overlay uses this same
+// button. Fires on capture phase so we restore BEFORE any level's own retry
+// handler runs resetLevelNState() (those don't touch the wallet anyway, but
+// order is predictable this way).
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('btn-retry');
+  if (btn && !btn.__walletWired) {
+    btn.__walletWired = true;
+    btn.addEventListener('click', __walletRestoreLevelRun, true);
+  }
+});
+
 // Stop every running level (used before switching or restarting)
 function __stopAllLevels() {
   if (window.__horridorsL1 && window.__horridorsL1.stop) { try { window.__horridorsL1.stop(); } catch(e) {} }
@@ -1184,6 +1222,8 @@ function __launchFresh(n) {
   const hud = document.getElementById('hud'); if (hud) hud.classList.add('hidden');
   window.__levelInProgress[n] = true;
   __setActiveLevelClass(n);
+  // Snapshot coins for this level — any deaths will roll back here.
+  if (window.__walletBeginLevelRun) window.__walletBeginLevelRun(n);
   if (n === 1) {
     ensureAudio();
     // Full L1 reset so "Restart" truly starts fresh.

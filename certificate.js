@@ -59,6 +59,29 @@
     hard:    { 1:false,2:false,3:false,4:false,5:false,6:false,7:false,8:false },
     extreme: { 1:false,2:false,3:false,4:false,5:false,6:false,7:false,8:false },
   };
+  // Completion date per tier — set once when all 8 flags are true on that
+  // tier (i.e. the player just earned that tier's certificate). Reused on
+  // subsequent views so the printed date stays accurate.
+  const completedAtByTier = { easy: null, medium: null, hard: null, extreme: null };
+
+  function isTierFullyCompleted(tierId) {
+    const p = progressByTier[tierId];
+    if (!p) return false;
+    for (let i = 1; i <= 8; i++) if (!p[i]) return false;
+    return true;
+  }
+  window.__isTierFullyCompleted = isTierFullyCompleted;
+
+  function formatCompletionDate(ts) {
+    const d = ts ? new Date(ts) : new Date();
+    // Locale-friendly long date: "19 April 2026". Falls back to the ISO
+    // substring if Intl is unavailable for any reason.
+    try {
+      return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    } catch (e) {
+      return d.toISOString().slice(0, 10);
+    }
+  }
   function currentTierId() {
     try { return (window.__difficulty && window.__difficulty.id && window.__difficulty.id()) || 'easy'; }
     catch (e) { return 'easy'; }
@@ -80,10 +103,22 @@
 
   function markComplete(n) {
     if (n >= 1 && n <= 8) {
+      const tier = currentTierId();
       currentProgress()[n] = true;
       refreshJumpButtonLocks();
-      // L8 completion → show the certificate.
+      // Bake in any coins earned during this level — they no longer roll
+      // back if the player dies on a later level.
+      try {
+        if (window.HorridorsWallet && window.HorridorsWallet.commitLevelRun) {
+          window.HorridorsWallet.commitLevelRun();
+        }
+      } catch (e) {}
+      // L8 completion → stamp the completion date (once) and show the cert.
       if (n === 8) {
+        if (isTierFullyCompleted(tier) && !completedAtByTier[tier]) {
+          completedAtByTier[tier] = Date.now();
+        }
+        try { refreshCertificatePanel(); } catch (e) {}
         try { setTimeout(showCertificateOverlay, 400); } catch (e) {}
       }
     }
@@ -106,7 +141,11 @@
   function resetTierProgress(tierId) {
     if (!progressByTier[tierId]) return;
     for (let i = 1; i <= 8; i++) progressByTier[tierId][i] = false;
+    // Wipe the completion timestamp too — if the player voluntarily resets
+    // this tier, the old completion date no longer applies.
+    completedAtByTier[tierId] = null;
     refreshJumpButtonLocks();
+    try { refreshCertificatePanel(); } catch (e) {}
   }
   window.__resetTierProgress = resetTierProgress;
 
@@ -353,6 +392,7 @@
     // in progress), unlock all, close.
     try { window.__difficulty && window.__difficulty.set(res.tierId, { force: true }); } catch (e) {}
     unlockAll();
+    try { refreshCertificatePanel(); } catch (e) {}
     result.textContent = 'Unlocked — welcome back, ' + res.name + '.';
     result.classList.remove('err'); result.classList.add('ok');
     setTimeout(closeKeyModal, 900);
@@ -382,6 +422,10 @@
             <div class="cert-diffrow">
               <span class="cert-diff-badge" id="cert-diff-badge">Easy</span>
               <span class="cert-diff-label">difficulty</span>
+            </div>
+            <div class="cert-daterow">
+              <span class="cert-date-label">Completed on</span>
+              <span class="cert-date" id="cert-date">—</span>
             </div>
             <div class="cert-sig">
               <div class="cert-sig-line">
@@ -417,19 +461,53 @@
     return ov;
   }
 
-  function showCertificateOverlay() {
+  function showCertificateOverlay(opts) {
     const ov = ensureCertOverlay();
     const diff = (window.__difficulty && window.__difficulty.get()) || { id: 'easy', name: 'Easy' };
-    const key = generateCertKey(playerName, diff.id);
+    const tierId = diff.id;
+    // Validator: certificate is only legitimate when all 8 levels on the
+    // currently-active tier are complete. This guards against stray calls
+    // (e.g. dev tools) and re-open-after-print paths.
+    const allow = !!(opts && opts.force) || isTierFullyCompleted(tierId);
+    if (!allow) {
+      showNotEarnedToast(tierId);
+      return;
+    }
+    // Stamp the completion date if this is the first time we're rendering
+    // the cert for this tier (covers the unlock-all cheat path + cert-key
+    // restore path which both set all 8 flags without routing through
+    // markComplete).
+    if (!completedAtByTier[tierId]) completedAtByTier[tierId] = Date.now();
+    const key = generateCertKey(playerName, tierId);
     ov.querySelector('#cert-name').textContent = playerName;
     ov.querySelector('#cert-diff-badge').textContent = diff.name;
+    ov.querySelector('#cert-date').textContent = formatCompletionDate(completedAtByTier[tierId]);
     ov.querySelector('#cert-key').textContent = key;
     const card = ov.querySelector('#certificate-card');
-    card.setAttribute('data-tier', diff.id);
-    ov.querySelector('#cert-diff-badge').setAttribute('data-tier', diff.id);
+    card.setAttribute('data-tier', tierId);
+    ov.querySelector('#cert-diff-badge').setAttribute('data-tier', tierId);
     ov.classList.remove('hidden');
   }
   window.__showCertificate = showCertificateOverlay;
+
+  // Lightweight toast shown when the player tries to view a cert for a tier
+  // they haven't actually cleared all 8 levels on (reuses the locked-toast
+  // styling from the jump-button lock system).
+  let earnToastT = null;
+  function showNotEarnedToast(tierId) {
+    let t = document.getElementById('locked-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'locked-toast';
+      t.className = 'locked-toast';
+      document.body.appendChild(t);
+    }
+    const name = TIER_NAME[tierId] || 'this tier';
+    t.textContent = 'Clear all 8 levels on ' + name + ' to earn the certificate.';
+    t.classList.add('show');
+    clearTimeout(earnToastT);
+    earnToastT = setTimeout(() => t.classList.remove('show'), 2400);
+  }
 
   function printCertificate() {
     document.body.classList.add('printing-cert');
@@ -515,6 +593,9 @@
         const prev = n - 1;
         const wrapped = function () {
           try { markComplete(prev); } catch (e) {}
+          // v23q: snapshot wallet state on entry to level n so a death
+          // on level n rolls coins back to this point.
+          try { if (window.__walletBeginLevelRun) window.__walletBeginLevelRun(n); } catch (e) {}
           return orig.apply(this, arguments);
         };
         wrapped.__certWrapped = true;
@@ -534,6 +615,71 @@
     }
   }
 
+  // ---------- UI: "Your Certificates" panel on title screen --------------
+  // Shows one "View certificate" button per fully-completed tier. Appears
+  // only when at least one tier has all 8 levels cleared. Re-rendered each
+  // time the title screen is shown via refreshCertificatePanel().
+  function ensureCertificatePanel() {
+    const title = document.getElementById('overlay-title');
+    if (!title) return null;
+    let panel = document.getElementById('cert-panel');
+    if (panel) return panel;
+    panel = document.createElement('div');
+    panel.id = 'cert-panel';
+    panel.className = 'cert-panel hidden';
+    panel.innerHTML = `
+      <div class="cert-panel-label">Your certificates</div>
+      <div class="cert-panel-row" id="cert-panel-row"></div>
+    `;
+    // Insert just above the level-jump block so it sits visually near the
+    // progression UI.
+    const jump = title.querySelector('.level-jump');
+    if (jump && jump.parentNode) {
+      jump.parentNode.insertBefore(panel, jump);
+    } else {
+      title.appendChild(panel);
+    }
+    return panel;
+  }
+
+  function refreshCertificatePanel() {
+    const panel = ensureCertificatePanel();
+    if (!panel) return;
+    const row = panel.querySelector('#cert-panel-row');
+    const earned = TIERS_LIST.filter(isTierFullyCompleted);
+    if (earned.length === 0) {
+      panel.classList.add('hidden');
+      row.innerHTML = '';
+      return;
+    }
+    panel.classList.remove('hidden');
+    row.innerHTML = earned.map((t) => {
+      const name = TIER_NAME[t] || t;
+      return (
+        '<button type="button" class="cert-panel-btn" data-tier="' + t + '">' +
+          '<span class="cert-panel-btn-tier" data-tier="' + t + '">' + name + '</span>' +
+          '<span class="cert-panel-btn-label">View certificate</span>' +
+        '</button>'
+      );
+    }).join('');
+    row.querySelectorAll('.cert-panel-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const tierId = btn.getAttribute('data-tier');
+        // Temporarily switch the active difficulty so the cert renders with
+        // the correct tier badge/colour/key. `force:true` bypasses the
+        // mid-run guard (which cannot fire here — we're on the title screen
+        // with no level running).
+        try {
+          if (window.__difficulty && window.__difficulty.set) {
+            window.__difficulty.set(tierId, { force: true });
+          }
+        } catch (e) {}
+        showCertificateOverlay();
+      });
+    });
+  }
+  window.__refreshCertificatePanel = refreshCertificatePanel;
+
   // ---------- Boot ---------------------------------------------------------
   function init() {
     renderNameInput();
@@ -541,6 +687,7 @@
     installLockInterceptor();
     refreshJumpButtonLocks();
     refreshNameEverywhere();
+    refreshCertificatePanel();
     wireStartLevelHooks();
   }
 
