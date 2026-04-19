@@ -278,25 +278,19 @@
         <!-- Overlay: Mother glimpse (brief peek) -->
         <div id="overlay-mother" class="overlay hidden">
           <div class="overlay-content note-panel mother-panel">
-            <svg viewBox="0 0 200 200" width="200" height="200" aria-hidden="true" style="margin: 0 auto; display: block;">
-              <rect width="200" height="200" fill="#0a0410"/>
-              <g stroke="#6a6a7a" stroke-width="3">
-                <line x1="30" y1="10" x2="30" y2="190"/>
-                <line x1="70" y1="10" x2="70" y2="190"/>
-                <line x1="110" y1="10" x2="110" y2="190"/>
-                <line x1="150" y1="10" x2="150" y2="190"/>
-                <line x1="190" y1="10" x2="190" y2="190"/>
-              </g>
-              <g transform="translate(100 120)">
-                <circle cx="0" cy="-24" r="14" fill="#ffe0c2" stroke="#6a4a30" stroke-width="2"/>
-                <path d="M-14 -30 Q 0 -40 14 -30 L 14 -18 L -14 -18 Z" fill="#8a5a3a"/>
-                <rect x="-14" y="-10" width="28" height="36" fill="#ff5fa2" stroke="#a02060" stroke-width="2" rx="3"/>
-                <rect x="-14" y="26" width="28" height="20" fill="#3a2a5a"/>
-                <circle cx="-4" cy="-24" r="1.8" fill="#1a1a1a"/>
-                <circle cx="4" cy="-24" r="1.8" fill="#1a1a1a"/>
-                <path d="M-4 -16 Q 0 -18 4 -16" stroke="#1a1a1a" stroke-width="1.5" fill="none"/>
-              </g>
-            </svg>
+            <div class="mother-cage-scene" aria-hidden="true">
+              <img src="./characters/mum.png" alt="" class="mother-cage-mum" />
+              <svg viewBox="0 0 200 200" width="200" height="200" class="mother-cage-bars" aria-hidden="true">
+                <g stroke="#5a5a6a" stroke-width="4" stroke-linecap="round">
+                  <line x1="30" y1="8" x2="30" y2="192"/>
+                  <line x1="70" y1="8" x2="70" y2="192"/>
+                  <line x1="110" y1="8" x2="110" y2="192"/>
+                  <line x1="150" y1="8" x2="150" y2="192"/>
+                  <line x1="190" y1="8" x2="190" y2="192"/>
+                </g>
+                <rect x="4" y="4" width="192" height="192" fill="none" stroke="#3a3a44" stroke-width="4" rx="6"/>
+              </svg>
+            </div>
             <div class="note-paper" style="margin-top: 12px;">
               <div class="note-title">Mum?</div>
               <div class="note-text" id="mother-text">You see her behind bars for just a moment — pink sweater, scared eyes. She whispers: "Keep going. Don't come back empty-handed." Then she's gone again, deeper in.</div>

@@ -2926,3 +2926,30 @@ body.has-touch #touch-menu-btn { display: block; }
   .cert-title { font-size: 15px; }
   .cert-sig { gap: 12px; }
 }
+
+/* v23 — Mum cage cutscene bitmap overlay */
+.mother-cage-scene {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin: 0 auto;
+  background: radial-gradient(ellipse at center 70%, #1a1020 0%, #0a0410 70%);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.mother-cage-mum {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  height: 165px;
+  width: auto;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
+  z-index: 1;
+}
+.mother-cage-bars {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
