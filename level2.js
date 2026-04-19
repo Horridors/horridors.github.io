@@ -340,6 +340,28 @@
   const items = [];
   function addItem(it) { items.push(it); }
 
+  // Spawn the Water crystal inside the aquarium room (bottom, by the tank).
+  // Safe to call multiple times — noop if already spawned or already owned.
+  function spawnWaterCrystal() {
+    if (!window.HorridorsWallet) return;
+    if (!window.HorridorsWallet.hasGrabpack()) return;
+    if (window.HorridorsWallet.hasElement('water')) return;
+    if (items.some(it => it.icon === 'crystal' && it.element === 'water')) return;
+    addItem({
+      x: ROOMS.aquarium.left + 80, y: ROOMS.aquarium.bottom - 80,
+      w: 22, h: 22, icon: 'crystal', element: 'water',
+      prompt: '💧 Pick up the Water crystal',
+      onPickup() {
+        sfx('good');
+        if (window.HorridorsWallet) window.HorridorsWallet.unlockElement('water');
+        state.elements.water = true;
+        speak('💧 WATER crystal! Your Grabpack drinks it right up.', 3800);
+        if (window.HorridorsStory) window.HorridorsStory.addCoins(3);
+        state.coins += 3;
+      }
+    });
+  }
+
   function collectItem(idx) {
     const it = items[idx];
     if (!it) return;
@@ -477,6 +499,9 @@
       if (!state.hasGrabpack) {
         state.hasGrabpack = true;
         if (window.HorridorsWallet && window.HorridorsWallet.giveGrabpack) window.HorridorsWallet.giveGrabpack();
+        // Now that the Grabpack is equipped, spawn the Water crystal so the
+        // player can actually find it in this level.
+        spawnWaterCrystal();
         state.flashlightOn = true;
         state.pickupFlash = 1.4; // bright flash that fades
         addNote('🧤 THE GRABPACK', 'You found the <b>GRABPACK</b>!<br/><br/>It\'s a chunky backpack with a <b>stretchy glove arm</b> called the <b>ELEMENTAL HAND</b>. Your flashlight just clicked right into its palm.<br/><br/>Five empty crystal sockets on the wrist hum faintly:<br/>🔥 <b>Fire</b> • ⚡ <b>Thunder</b> • 🪨 <b>Earth</b> • 💧 <b>Water</b> • 💨 <b>Air</b><br/><br/>New friends in these walls know how to unlock them.<br/><br/><b style="color:#ffd866">HOW TO USE:</b><br/>• Press <b>1–5</b> to pick an element<br/>• Press <b>E</b> to shoot or use it<br/>• Find crystals to unlock each slot');
@@ -2059,23 +2084,9 @@
         onPickup() { sfx('jingle'); if(window.HorridorsStory) window.HorridorsStory.unlockGem('l2_bottle'); }
       });
     }
-    // ---- WATER crystal (Elemental Hand): tucked inside the aquarium room ----
-    // Only visible if the player has the Grabpack but doesn't yet own Water.
-    if (window.HorridorsWallet && window.HorridorsWallet.hasGrabpack() && !window.HorridorsWallet.hasElement('water')) {
-      addItem({
-        x: ROOMS.aquarium.left + 340, y: ROOMS.aquarium.top + 120,
-        w: 16, h: 16, icon: 'crystal', element: 'water',
-        prompt: '💧 Pick up a Water crystal',
-        onPickup() {
-          sfx('good');
-          if (window.HorridorsWallet) window.HorridorsWallet.unlockElement('water');
-          state.elements.water = true;
-          speak('💧 WATER crystal! Your Grabpack drinks it right up.', 3800);
-          if (window.HorridorsStory) window.HorridorsStory.addCoins(3);
-          state.coins += 3;
-        }
-      });
-    }
+    // ---- WATER crystal: spawned via spawnWaterCrystal() so we can add it at
+    // reset OR mid-level (the instant the Grabpack is picked up). ----
+    spawnWaterCrystal();
 
     buildWalls();
     // Reset player & camera
