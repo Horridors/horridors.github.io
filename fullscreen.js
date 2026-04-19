@@ -27,7 +27,9 @@
       el.msRequestFullscreen;
     if (fn) {
       try {
-        const p = fn.call(el);
+        // { navigationUI: 'hide' } is a hint (Chrome) to hide browser UI
+        // on mobile. Standard fullscreen otherwise.
+        const p = fn.call(el, { navigationUI: 'hide' });
         if (p && typeof p.then === 'function') return p;
         return Promise.resolve();
       } catch (e) {
@@ -80,22 +82,49 @@
     } catch (e) {}
   }
 
+  // Real fullscreen support detection.
+  function canRealFullscreen() {
+    const el = document.documentElement;
+    return !!(
+      el.requestFullscreen ||
+      el.webkitRequestFullscreen ||
+      el.msRequestFullscreen
+    ) && (document.fullscreenEnabled !== false);
+  }
+
   function toggle() {
     // Currently in real fullscreen? exit it.
     if (inRealFullscreen()) {
-      exitReal().catch(() => {});
+      exitReal().catch((err) => console.warn('[Horridors] exit FS failed:', err));
       return;
     }
-    // Currently in pseudo? exit it.
+
+    // Prefer real fullscreen when it's supported. Target documentElement so
+    // the browser grants fullscreen for the whole page (works more reliably
+    // than targeting a transformed / nested element on mobile Chrome).
+    if (canRealFullscreen()) {
+      const target = document.documentElement;
+      requestReal(target).then(() => {
+        // Real FS succeeded — drop pseudo if it was on (avoid double-rotation)
+        if (pseudoOn) exitPseudo();
+      }).catch((err) => {
+        console.warn('[Horridors] real fullscreen request failed, falling back to pseudo:', err);
+        // If pseudo is already on (mobile portrait auto-rotate), keep it.
+        if (!pseudoOn) enterPseudo();
+      });
+      return;
+    }
+
+    // No real FS API (e.g. iOS Safari on non-video). Toggle pseudo instead.
     if (pseudoOn) {
       exitPseudo();
-      return;
-    }
-    // Otherwise, try real fullscreen on the game-root.
-    // If that fails (iframe sandbox, Safari iOS, etc.), fall back to pseudo.
-    requestReal(root).catch(() => {
+    } else {
       enterPseudo();
-    });
+    }
+    // Hint to user that iOS Safari doesn't support true fullscreen web pages.
+    if (/iphone|ipod|ipad/i.test(navigator.userAgent) && !window.navigator.standalone) {
+      console.info('[Horridors] iOS Safari does not support real fullscreen for web pages. Add to Home Screen for a fullscreen app-like experience.');
+    }
   }
 
   btn.addEventListener('click', (e) => {

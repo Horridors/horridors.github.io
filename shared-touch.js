@@ -1,14 +1,21 @@
-// Horridors — Shared Touch Controls (v3: analog thumbstick)
+// Horridors — Shared Touch Controls (v4: low-latency touch path)
 // Left side: analog thumbstick -> arrow key keydown/keyup events (8-direction).
 // Right side: big A (Action/E), B (Space), and a smaller X (Escape).
-// All inputs synthesise real KeyboardEvents so the game's keyboard handlers
-// work with zero changes.
+//
+// v4 changes for mobile responsiveness:
+//  - Native touch events preferred on touch devices (lower latency on iOS
+//    than PointerEvents, which sometimes drop moves when parent is rotated).
+//  - Multi-touch: each control tracks its own touch identifier so pressing
+//    B with the right thumb does not interrupt thumbstick with the left.
+//  - Buttons no longer release on pointerleave / touchleave — only on
+//    real lift (touchend / touchcancel) so a sliding thumb keeps jumping.
+//  - No CSS transition on the knob — every finger sample shows instantly.
 //
 // Exposed as window.HorridorsTouch.
 (function () {
   if (window.HorridorsTouch) return;
 
-  // Detect touch: must have touch event support AND coarse pointer.
+  // Detect touch: must have touch event support OR coarse pointer.
   const isTouch = (
     ('ontouchstart' in window) ||
     (navigator.maxTouchPoints > 0) ||
@@ -56,6 +63,14 @@
     for (const k of Array.from(heldKeys)) releaseKey(k);
   }
 
+  // Find the Touch in a TouchList by identifier (returns null if not in list).
+  function findTouch(list, id) {
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].identifier === id) return list[i];
+    }
+    return null;
+  }
+
   // ---------- Analog Thumbstick ----------
   // Translates a 2D stick offset into held arrow keys. 8-direction dead zone.
   function buildThumbstick() {
@@ -82,13 +97,13 @@
     const indLeft = wrap.querySelector('.ind.left');
     const indRight = wrap.querySelector('.ind.right');
 
-    let activePointerId = null;
+    let activeId = null; // pointerId (for Pointer events) or touch.identifier
+    let usingTouchEvents = false;
     let baseRect = null;
     let maxRadius = 0;
     let currentDirs = { up: false, down: false, left: false, right: false };
 
     function applyDirs(dirs) {
-      // Held-key diffs between prev and next
       const map = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' };
       for (const name of Object.keys(map)) {
         const key = map[name];
@@ -96,7 +111,6 @@
         if (!dirs[name] && currentDirs[name]) releaseKey(key);
       }
       currentDirs = dirs;
-      // Visual indicators
       indUp.classList.toggle('on', dirs.up);
       indDown.classList.toggle('on', dirs.down);
       indLeft.classList.toggle('on', dirs.left);
@@ -122,19 +136,15 @@
       }
       knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
 
-      // Dead zone ~25% of radius
-      const dead = maxRadius * 0.28;
+      // Small dead zone so tiny jitter doesn't fire keys
+      const dead = maxRadius * 0.22;
       if (dist < dead) {
         applyDirs({ up: false, down: false, left: false, right: false });
         return;
       }
-      // Angle -> 8-dir
-      const ang = Math.atan2(dy, dx); // -PI..PI, 0 = right, PI/2 = down
-      // Convert to 0..360 degrees with 0 = up for easier bucketing
-      let deg = (ang * 180 / Math.PI + 90 + 360) % 360; // 0 = up, 90 = right
+      const ang = Math.atan2(dy, dx);
+      let deg = (ang * 180 / Math.PI + 90 + 360) % 360;
       const dirs = { up: false, down: false, left: false, right: false };
-      // 8 sectors of 45deg each, centered on cardinals and diagonals.
-      // Up: 337.5-22.5, UpRight: 22.5-67.5, Right: 67.5-112.5, etc.
       if (deg >= 337.5 || deg < 22.5) dirs.up = true;
       else if (deg < 67.5) { dirs.up = true; dirs.right = true; }
       else if (deg < 112.5) dirs.right = true;
@@ -142,40 +152,79 @@
       else if (deg < 202.5) dirs.down = true;
       else if (deg < 247.5) { dirs.down = true; dirs.left = true; }
       else if (deg < 292.5) dirs.left = true;
-      else dirs.up = true, dirs.left = true;
+      else { dirs.up = true; dirs.left = true; }
 
       applyDirs(dirs);
     }
 
-    base.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      if (activePointerId !== null) return;
-      activePointerId = e.pointerId;
-      base.setPointerCapture && base.setPointerCapture(e.pointerId);
+    function startAt(clientX, clientY) {
       baseRect = base.getBoundingClientRect();
       maxRadius = baseRect.width * 0.38;
       base.classList.add('engaged');
-      updateKnob(e.clientX, e.clientY);
-    });
-    base.addEventListener('pointermove', (e) => {
-      if (e.pointerId !== activePointerId) return;
-      e.preventDefault();
-      updateKnob(e.clientX, e.clientY);
-    });
-    function end(e) {
-      if (e && e.pointerId !== activePointerId) return;
-      activePointerId = null;
+      updateKnob(clientX, clientY);
+    }
+    function end() {
+      activeId = null;
       baseRect = null;
       resetKnob();
     }
-    base.addEventListener('pointerup', end);
-    base.addEventListener('pointercancel', end);
-    base.addEventListener('lostpointercapture', end);
-    base.addEventListener('pointerleave', (e) => {
-      // Keep holding if capture is active; only release on actual lift.
-      // pointerleave fires when finger goes out of element bounds; since we
-      // captured the pointer, the up event still arrives. No-op here.
+
+    // ---- Native Touch Events (preferred when available) ----
+    if ('ontouchstart' in window) {
+      usingTouchEvents = true;
+
+      base.addEventListener('touchstart', (e) => {
+        if (activeId !== null) return;
+        const t = e.changedTouches[0];
+        if (!t) return;
+        e.preventDefault();
+        activeId = t.identifier;
+        startAt(t.clientX, t.clientY);
+      }, { passive: false });
+
+      // Listen on window for move/end so the touch can slide outside the
+      // base without losing tracking.
+      window.addEventListener('touchmove', (e) => {
+        if (activeId === null) return;
+        const t = findTouch(e.changedTouches, activeId);
+        if (!t) return;
+        e.preventDefault();
+        updateKnob(t.clientX, t.clientY);
+      }, { passive: false });
+
+      function onEnd(e) {
+        if (activeId === null) return;
+        const t = findTouch(e.changedTouches, activeId);
+        if (!t) return;
+        end();
+      }
+      window.addEventListener('touchend', onEnd);
+      window.addEventListener('touchcancel', onEnd);
+    }
+
+    // ---- Pointer Events fallback (desktop / stylus / non-touch) ----
+    base.addEventListener('pointerdown', (e) => {
+      if (usingTouchEvents) return; // touch path already handled it
+      if (activeId !== null) return;
+      e.preventDefault();
+      activeId = e.pointerId;
+      try { base.setPointerCapture && base.setPointerCapture(e.pointerId); } catch (_) {}
+      startAt(e.clientX, e.clientY);
     });
+    base.addEventListener('pointermove', (e) => {
+      if (usingTouchEvents) return;
+      if (e.pointerId !== activeId) return;
+      e.preventDefault();
+      updateKnob(e.clientX, e.clientY);
+    });
+    function pEnd(e) {
+      if (usingTouchEvents) return;
+      if (e && e.pointerId !== activeId) return;
+      end();
+    }
+    base.addEventListener('pointerup', pEnd);
+    base.addEventListener('pointercancel', pEnd);
+    base.addEventListener('lostpointercapture', pEnd);
 
     return wrap;
   }
@@ -185,6 +234,7 @@
     b.className = 'touch-btn action ' + (opts.cls || '');
     b.setAttribute('data-k', key);
     b.setAttribute('aria-label', opts.aria || label);
+    b.setAttribute('type', 'button');
     b.style.touchAction = 'none';
     b.innerHTML = `
       <span class="btn-glyph">${opts.glyph || label}</span>
@@ -192,6 +242,102 @@
     `;
     b.addEventListener('contextmenu', (e) => e.preventDefault());
     return b;
+  }
+
+  // Attach press-and-hold behaviour to an action button using the best
+  // available event path. For multi-touch safety, each button tracks its
+  // own activeTouchId independently.
+  function wireHold(btn, key) {
+    let activeTouchId = null;
+    let activePointerId = null;
+
+    function press() { btn.classList.add('active'); pressKey(key); }
+    function release() { btn.classList.remove('active'); releaseKey(key); }
+
+    if ('ontouchstart' in window) {
+      btn.addEventListener('touchstart', (e) => {
+        if (activeTouchId !== null) return;
+        const t = e.changedTouches[0];
+        if (!t) return;
+        e.preventDefault();
+        activeTouchId = t.identifier;
+        press();
+      }, { passive: false });
+
+      function onEnd(e) {
+        if (activeTouchId === null) return;
+        const t = findTouch(e.changedTouches, activeTouchId);
+        if (!t) return;
+        activeTouchId = null;
+        release();
+      }
+      // Listen on window so finger can slide off the button and we still
+      // get the up event.
+      window.addEventListener('touchend', onEnd);
+      window.addEventListener('touchcancel', onEnd);
+      return;
+    }
+
+    // Pointer-events fallback
+    btn.addEventListener('pointerdown', (e) => {
+      if (activePointerId !== null) return;
+      e.preventDefault();
+      activePointerId = e.pointerId;
+      try { btn.setPointerCapture && btn.setPointerCapture(e.pointerId); } catch (_) {}
+      press();
+    });
+    function pEnd(e) {
+      if (e && e.pointerId !== activePointerId) return;
+      activePointerId = null;
+      release();
+    }
+    btn.addEventListener('pointerup', pEnd);
+    btn.addEventListener('pointercancel', pEnd);
+    btn.addEventListener('lostpointercapture', pEnd);
+    // Intentionally NOT pointerleave — captured pointer stays bound until lift.
+  }
+
+  // Attach tap behaviour (fires once on press, no hold).
+  function wireTap(btn, fn) {
+    let firedFor = null; // touch.identifier or pointerId
+    function doTap() {
+      btn.classList.add('active');
+      fn();
+      setTimeout(() => btn.classList.remove('active'), 120);
+    }
+
+    if ('ontouchstart' in window) {
+      btn.addEventListener('touchstart', (e) => {
+        if (firedFor !== null) return;
+        const t = e.changedTouches[0];
+        if (!t) return;
+        e.preventDefault();
+        firedFor = t.identifier;
+        doTap();
+      }, { passive: false });
+      function onEnd(e) {
+        if (firedFor === null) return;
+        const t = findTouch(e.changedTouches, firedFor);
+        if (!t) return;
+        firedFor = null;
+      }
+      window.addEventListener('touchend', onEnd);
+      window.addEventListener('touchcancel', onEnd);
+      return;
+    }
+
+    btn.addEventListener('pointerdown', (e) => {
+      if (firedFor !== null) return;
+      e.preventDefault();
+      firedFor = e.pointerId;
+      doTap();
+    });
+    function pEnd(e) {
+      if (e && e.pointerId !== firedFor) return;
+      firedFor = null;
+    }
+    btn.addEventListener('pointerup', pEnd);
+    btn.addEventListener('pointercancel', pEnd);
   }
 
   function buildUI() {
@@ -217,29 +363,11 @@
 
     document.body.appendChild(root);
 
-    // Held behaviour for A and B (E and Space)
-    [btnA, btnB].forEach(btn => {
-      const k = btn.getAttribute('data-k');
-      btn.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        btn.setPointerCapture && btn.setPointerCapture(e.pointerId);
-        btn.classList.add('active');
-        pressKey(k);
-      });
-      const stop = () => { btn.classList.remove('active'); releaseKey(k); };
-      btn.addEventListener('pointerup', stop);
-      btn.addEventListener('pointercancel', stop);
-      btn.addEventListener('lostpointercapture', stop);
-      btn.addEventListener('pointerleave', stop);
-    });
-
-    // Tap-only: X (Escape + also fires 'e' for overlay close consistency)
-    btnX.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      btnX.classList.add('active');
+    wireHold(btnA, 'e');
+    wireHold(btnB, ' ');
+    wireTap(btnX, () => {
       tapKey('Escape');
       setTimeout(() => tapKey('e'), 20);
-      setTimeout(() => btnX.classList.remove('active'), 120);
     });
 
     // Safety: release everything when window loses focus
@@ -267,10 +395,6 @@
   }
 
   // Translate keyboard-centric prompt text to touch-button labels.
-  // e.g. "Press E near the cage" -> "Tap A near the cage"
-  //      "[E] Open" -> "[A] Open"
-  //      "Press SPACE to jump" -> "Tap B to jump"
-  //      "Press Esc" -> "Tap X"
   function keyLabel(text) {
     if (!isTouch || typeof text !== 'string') return text;
     return text
