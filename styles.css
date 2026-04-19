@@ -2173,3 +2173,95 @@ body:not(.has-touch) #mobile-fs-btn {
 #mobile-fs-btn.is-fs {
   opacity: 0.7;
 }
+
+/* ============================================================
+   Hold-to-exit menu button (touch devices only)
+   Top-left corner, away from the thumbstick and action cluster.
+   Must be held 800ms to avoid accidental exits.
+   ============================================================ */
+#touch-menu-btn {
+  display: none;
+  position: fixed;
+  top: 54px;
+  left: 12px;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 120, 135, 0.55);
+  background: radial-gradient(circle at 35% 30%, rgba(80, 24, 34, 0.78), rgba(40, 12, 18, 0.9) 70%);
+  color: #ffe2e5;
+  z-index: 2147483645;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: pointer;
+  overflow: visible;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  transition: transform 140ms ease, background 160ms ease, border-color 160ms ease;
+}
+body.has-touch #touch-menu-btn { display: block; }
+
+#touch-menu-btn .menu-glyph {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Progress ring drawn with a conic-gradient; --p goes 0 → 1 as held. */
+#touch-menu-btn .menu-ring {
+  --p: 0;
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: conic-gradient(#ff6b7d calc(var(--p) * 360deg), rgba(255, 120, 135, 0.12) 0);
+  mask: radial-gradient(circle, transparent 56%, black 58%);
+  -webkit-mask: radial-gradient(circle, transparent 56%, black 58%);
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+#touch-menu-btn.holding .menu-ring { opacity: 1; }
+
+#touch-menu-btn .menu-label {
+  position: absolute;
+  top: 52px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  background: rgba(10, 8, 14, 0.78);
+  color: #ffd0d5;
+  padding: 3px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 120, 135, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+  z-index: 3;
+}
+#touch-menu-btn.holding .menu-label { opacity: 1; }
+
+#touch-menu-btn.holding {
+  transform: scale(1.05);
+  border-color: rgba(255, 180, 190, 0.95);
+  background: radial-gradient(circle at 35% 30%, rgba(180, 40, 60, 0.95), rgba(60, 14, 22, 0.95) 70%);
+}
+#touch-menu-btn.triggered {
+  background: radial-gradient(circle at 35% 30%, rgba(255, 220, 230, 0.95), rgba(220, 80, 100, 0.95) 70%);
+  transform: scale(0.92);
+}
+
+/* No overlay-based fade rule — JS guards the hold trigger when the title overlay
+   is visible, so an accidental hold on the menu screen is harmless. */

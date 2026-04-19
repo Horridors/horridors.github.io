@@ -354,21 +354,26 @@
 
     const btnA = makeActionButton('A', 'e',     { cls: 'a',   glyph: 'A', sub: 'Use', aria: 'Action' });
     const btnB = makeActionButton('B', ' ',     { cls: 'b',   glyph: 'B', sub: 'Jump', aria: 'Jump' });
-    const btnX = makeActionButton('X', 'Escape',{ cls: 'x',   glyph: '✕', sub: 'Menu', aria: 'Menu / Close' });
 
     actions.appendChild(btnB);
     actions.appendChild(btnA);
-    actions.appendChild(btnX);
     root.appendChild(actions);
 
     document.body.appendChild(root);
 
     wireHold(btnA, 'e');
     wireHold(btnB, ' ');
-    wireTap(btnX, () => {
-      tapKey('Escape');
-      setTimeout(() => tapKey('e'), 20);
-    });
+
+    // Hold-to-exit menu button — placed top-left away from action cluster.
+    // Must be held for 800ms to trigger, preventing accidental taps.
+    const menuBtn = document.createElement('button');
+    menuBtn.id = 'touch-menu-btn';
+    menuBtn.type = 'button';
+    menuBtn.setAttribute('aria-label', 'Hold to return to level select');
+    menuBtn.innerHTML = '<span class="menu-glyph">✕</span><span class="menu-ring"></span><span class="menu-label">Hold to exit</span>';
+    menuBtn.style.touchAction = 'none';
+    document.body.appendChild(menuBtn);
+    wireHoldToExit(menuBtn);
 
     // Safety: release everything when window loses focus
     window.addEventListener('blur', releaseAll);
@@ -377,6 +382,58 @@
     });
 
     return root;
+  }
+
+  // ---- Hold-to-exit helper ----
+  function wireHoldToExit(btn) {
+    const HOLD_MS = 800;
+    let holdTimer = null;
+    let holdStart = 0;
+    let rafId = null;
+    const ring = btn.querySelector('.menu-ring');
+    function updateRing() {
+      if (holdStart === 0) { if (ring) ring.style.setProperty('--p', '0'); return; }
+      const elapsed = performance.now() - holdStart;
+      const p = Math.min(1, elapsed / HOLD_MS);
+      if (ring) ring.style.setProperty('--p', p.toFixed(3));
+      if (p < 1) rafId = requestAnimationFrame(updateRing);
+    }
+    function startHold(ev) {
+      if (ev && ev.preventDefault) ev.preventDefault();
+      // If we're already on the title/level-select, a hold is pointless — bail.
+      const title = document.getElementById('overlay-title');
+      if (title && !title.classList.contains('hidden')) return;
+      btn.classList.add('holding');
+      holdStart = performance.now();
+      rafId = requestAnimationFrame(updateRing);
+      holdTimer = setTimeout(() => {
+        btn.classList.remove('holding');
+        btn.classList.add('triggered');
+        setTimeout(() => btn.classList.remove('triggered'), 400);
+        holdStart = 0;
+        if (ring) ring.style.setProperty('--p', '0');
+        if (typeof window.__returnToTitle === 'function') {
+          window.__returnToTitle();
+        } else {
+          tapKey('Escape');
+        }
+      }, HOLD_MS);
+    }
+    function cancelHold() {
+      btn.classList.remove('holding');
+      if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+      holdStart = 0;
+      if (ring) ring.style.setProperty('--p', '0');
+    }
+    btn.addEventListener('pointerdown', startHold);
+    btn.addEventListener('pointerup', cancelHold);
+    btn.addEventListener('pointercancel', cancelHold);
+    btn.addEventListener('pointerleave', cancelHold);
+    // touch fallback
+    btn.addEventListener('touchstart', startHold, { passive: false });
+    btn.addEventListener('touchend', cancelHold);
+    btn.addEventListener('touchcancel', cancelHold);
   }
 
   function enable()  { document.body.classList.add('has-touch'); }
