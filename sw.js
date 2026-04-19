@@ -1,6 +1,6 @@
 // Horridors — Service Worker (offline cache)
 // Cache-first strategy for static assets. Bump CACHE_VERSION on any meaningful change.
-const CACHE_VERSION = 'horridors-v23r-gems-badge-move';
+const CACHE_VERSION = 'horridors-v23s-elemental-pickups';
 const ASSETS = [
   './',
   './index.html',

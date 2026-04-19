@@ -308,6 +308,12 @@
       items.push({ kind: 'gem', gemId: 'l4_keyring', gemColor: '#c09cff', x: 140, y: 1450, w: 18, h: 18, collected: false });
     }
 
+    // FIRE crystal (Elemental Hand): smoldering atop a boiler coil in the lower chamber.
+    // Only shows if the player has the Grabpack but doesn't yet own Fire.
+    if (window.HorridorsWallet && window.HorridorsWallet.hasGrabpack() && !window.HorridorsWallet.hasElement('fire')) {
+      items.push({ kind: 'crystal', element: 'fire', x: 2000, y: 1380, w: 18, h: 18, collected: false });
+    }
+
     // FIXED story order (1 → 3 → 2) — Mum's note in the middle chamber spells it.
     // Kept as state so render/UI can read it; NOT randomized anymore.
     state.candleOrder = [0, 2, 1];
@@ -466,6 +472,12 @@
         it.collected = true;
         sfx('pickup');
         if (window.HorridorsStory && it.gemId) window.HorridorsStory.unlockGem(it.gemId);
+      } else if (it.kind === 'crystal') {
+        it.collected = true;
+        sfx('pickup');
+        if (window.HorridorsWallet && it.element) window.HorridorsWallet.unlockElement(it.element);
+        if (window.HorridorsWallet) window.HorridorsWallet.addCoins(3);
+        speak('🔥 FIRE crystal! Your Grabpack hums warm.', 3600);
       }
     }
 
@@ -810,6 +822,33 @@
         ctx.closePath(); ctx.fill(); ctx.stroke();
         ctx.fillStyle = 'rgba(255,255,255,0.85)';
         ctx.beginPath(); ctx.arc(cx - 2, cy - 2, 1.8, 0, Math.PI*2); ctx.fill();
+      } else if (it.kind === 'crystal') {
+        // Elemental crystal: diamond shape, pulsing radial glow in element color.
+        const meta = (window.HorridorsWallet && window.HorridorsWallet.elementMeta)
+          ? window.HorridorsWallet.elementMeta(it.element)
+          : null;
+        const color = (meta && meta.color) || '#ff8a3a';
+        const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, 24);
+        grad.addColorStop(0, color);
+        grad.addColorStop(0.5, color + '55');
+        grad.addColorStop(1, color + '00');
+        ctx.fillStyle = grad; ctx.globalAlpha = 0.8 * pulse;
+        ctx.beginPath(); ctx.arc(cx, cy, 24, 0, Math.PI*2); ctx.fill();
+        ctx.globalAlpha = 1;
+        // Diamond body
+        ctx.fillStyle = color;
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 9);
+        ctx.lineTo(cx + 7, cy);
+        ctx.lineTo(cx, cy + 9);
+        ctx.lineTo(cx - 7, cy);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        // White glint
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.beginPath(); ctx.arc(cx - 2, cy - 3, 1.6, 0, Math.PI*2); ctx.fill();
       } else if (it.kind === 'key') {
         // Skeleton key glow
         const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, 30);

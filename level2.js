@@ -476,6 +476,7 @@
       }
       if (!state.hasGrabpack) {
         state.hasGrabpack = true;
+        if (window.HorridorsWallet && window.HorridorsWallet.giveGrabpack) window.HorridorsWallet.giveGrabpack();
         state.flashlightOn = true;
         state.pickupFlash = 1.4; // bright flash that fades
         addNote('🧤 THE GRABPACK', 'You found the <b>GRABPACK</b>!<br/><br/>It\'s a chunky backpack with a <b>stretchy glove arm</b> called the <b>ELEMENTAL HAND</b>. Your flashlight just clicked right into its palm.<br/><br/>Five empty crystal sockets on the wrist hum faintly:<br/>🔥 <b>Fire</b> • ⚡ <b>Thunder</b> • 🪨 <b>Earth</b> • 💧 <b>Water</b> • 💨 <b>Air</b><br/><br/>New friends in these walls know how to unlock them.<br/><br/><b style="color:#ffd866">HOW TO USE:</b><br/>• Press <b>1–5</b> to pick an element<br/>• Press <b>E</b> to shoot or use it<br/>• Find crystals to unlock each slot');
@@ -560,6 +561,7 @@
         return;
       }
       state.elements.thunder = true;
+      if (window.HorridorsWallet && window.HorridorsWallet.unlockElement) window.HorridorsWallet.unlockElement('thunder');
       state.socky.given = true;
       state.selectedElem = 'thunder';
       state.zapFlash = 0.6;
@@ -1252,6 +1254,36 @@
           ctx.fillStyle = '#c9723c';
           ctx.fillRect(-2, -3, 2, 6);
           break;
+        case 'crystal': {
+          // Elemental crystal: diamond shape, pulsing glow, color from element.
+          const meta = (window.HorridorsWallet && window.HorridorsWallet.elementMeta)
+            ? window.HorridorsWallet.elementMeta(it.element)
+            : { color: it.crystalColor || '#6ac8ff', icon: '💧' };
+          const color = meta.color;
+          const pulse = 0.7 + Math.sin(performance.now()/280) * 0.3;
+          // Outer glow
+          ctx.save();
+          ctx.globalAlpha = 0.55 * pulse;
+          const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 22);
+          g.addColorStop(0, color); g.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = g;
+          ctx.fillRect(-22, -22, 44, 44);
+          ctx.restore();
+          // Diamond body
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.moveTo(0, -9);
+          ctx.lineTo(7, 0);
+          ctx.lineTo(0, 9);
+          ctx.lineTo(-7, 0);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.2; ctx.stroke();
+          // Highlight glint
+          ctx.fillStyle = 'rgba(255,255,255,0.9)';
+          ctx.beginPath(); ctx.moveTo(-2, -4); ctx.lineTo(2, -2); ctx.lineTo(-2, 2); ctx.closePath(); ctx.fill();
+          break;
+        }
         case 'gem': {
           // Hidden pentagon gem with pulsing glow
           const pulse = 0.75 + Math.sin(performance.now()/300) * 0.25;
@@ -1971,6 +2003,19 @@
     state.hasGrabpack = false;
     state.elements = { fire: false, thunder: false, earth: false, water: false, air: false };
     state.selectedElem = null;
+    // Seed from the persistent wallet so elements already earned in prior
+    // levels (or a prior L2 run) remain visible.
+    if (window.HorridorsWallet) {
+      if (window.HorridorsWallet.hasGrabpack()) state.hasGrabpack = true;
+      const snap = window.HorridorsWallet.elementsSnapshot ? window.HorridorsWallet.elementsSnapshot() : {};
+      for (const k of Object.keys(state.elements)) state.elements[k] = !!snap[k];
+      // Pick a sensible default selection: thunder if owned, else first owned.
+      if (state.elements.thunder) state.selectedElem = 'thunder';
+      else {
+        const owned = Object.keys(state.elements).find(k => state.elements[k]);
+        state.selectedElem = owned || null;
+      }
+    }
     state.zapFlash = 0;
     state.pickupFlash = 0;
     state.panelZapped = false;
@@ -2012,6 +2057,23 @@
         w: 14, h: 14, icon: 'gem', gemColor: '#6fe0c5',
         prompt: '💎 ?',
         onPickup() { sfx('jingle'); if(window.HorridorsStory) window.HorridorsStory.unlockGem('l2_bottle'); }
+      });
+    }
+    // ---- WATER crystal (Elemental Hand): tucked inside the aquarium room ----
+    // Only visible if the player has the Grabpack but doesn't yet own Water.
+    if (window.HorridorsWallet && window.HorridorsWallet.hasGrabpack() && !window.HorridorsWallet.hasElement('water')) {
+      addItem({
+        x: ROOMS.aquarium.left + 340, y: ROOMS.aquarium.top + 120,
+        w: 16, h: 16, icon: 'crystal', element: 'water',
+        prompt: '💧 Pick up a Water crystal',
+        onPickup() {
+          sfx('good');
+          if (window.HorridorsWallet) window.HorridorsWallet.unlockElement('water');
+          state.elements.water = true;
+          speak('💧 WATER crystal! Your Grabpack drinks it right up.', 3800);
+          if (window.HorridorsStory) window.HorridorsStory.addCoins(3);
+          state.coins += 3;
+        }
       });
     }
 

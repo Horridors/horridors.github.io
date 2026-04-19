@@ -740,6 +740,56 @@
     }
   }
 
+  // EARTH crystal (Elemental Hand): mossy stone tucked in the corridor by Cell 1.
+  // Only active if the player has the Grabpack but doesn't yet own Earth.
+  function drawL5Earth() {
+    if (!(window.HorridorsWallet && window.HorridorsWallet.hasGrabpack())) return;
+    if (window.HorridorsWallet.hasElement('earth')) return;
+    if (!window._l5Earth) {
+      window._l5Earth = { x: 260, y: 540, w: 18, h: 18, collected: false };
+    }
+    const it = window._l5Earth;
+    if (it.collected) return;
+    if (rectIntersect(player, it)) {
+      it.collected = true;
+      sfx && sfx('pickup');
+      if (window.HorridorsWallet) window.HorridorsWallet.unlockElement('earth');
+      if (window.HorridorsWallet) window.HorridorsWallet.addCoins(3);
+      // speak via state helper if available
+      if (state && typeof state === 'object') {
+        state.speakerLine = '🌱 EARTH crystal! Your Grabpack feels rooted now.';
+        state.speakerT = 3000;
+      }
+      return;
+    }
+    const t = performance.now() / 1000;
+    const cx = it.x + it.w/2;
+    const cy = it.y + it.h/2 + Math.sin(t * 2) * 2;
+    const pulse = 0.7 + 0.3 * Math.sin(t * 3);
+    const color = '#7ac266';
+    ctx.save();
+    const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, 24);
+    grad.addColorStop(0, color);
+    grad.addColorStop(0.5, color + '55');
+    grad.addColorStop(1, color + '00');
+    ctx.fillStyle = grad; ctx.globalAlpha = 0.8 * pulse;
+    ctx.beginPath(); ctx.arc(cx, cy, 24, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = color;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 9);
+    ctx.lineTo(cx + 7, cy);
+    ctx.lineTo(cx, cy + 9);
+    ctx.lineTo(cx - 7, cy);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.beginPath(); ctx.arc(cx - 2, cy - 3, 1.6, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
   // Chester pickup-collectible: hidden gem L5
   function drawL5Gem() {
     // Only if not collected
@@ -846,6 +896,7 @@
       for (const c of coins) if (!c.got) window.HorridorsSprites.drawCoin(ctx, c.x, c.y, t, 7);
     }
     drawL5Gem();
+    drawL5Earth();
     drawCompanion();
     drawChester(player.x + player.w/2, player.y + player.h, 1, player.facing);
     ctx.restore();
