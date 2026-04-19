@@ -96,7 +96,7 @@
       { title: 'The plan',
         text: 'Three of us — four of them. Each Horridor takes real hits now. Drip and Socky are dangerous, Ex Preshon throws heavy shadow orbs, and Exlena will call more Drips when she weakens. Stay moving. Save coins for upgrades next time you see a shop.' },
       { title: 'Controls',
-        text: 'Arrows / WASD to move. A / E to punch. B / Space to fire a Grabpack element (stronger, auto-aims at nearest Horridor). Keyboard: 1=Fire, 2=Thunder, 3=Earth, 4=Water. Get close to the cage and press A / E to bash it open.' },
+        text: 'Arrows / WASD to move. A / E to punch. B / Space to fire a Grabpack element (stronger, auto-aims at nearest Horridor). Keyboard: 1=Fire, 2=Thunder, 3=Earth, 4=Water. Get close to the cage and press A / E to bash it open. X / Esc returns to level select.' },
     ],
   };
 
@@ -505,14 +505,18 @@
     state.screenFlash = 0.35;
     // Unique defeat line per kind
     if (DEFEAT_LINES[e.kind]) speak(DEFEAT_LINES[e.kind], 2200);
-    // Check if all dead
+    // Check if all dead — only count it as victory if the full wave has spawned
     const anyAlive = enemies.some(x => !x.dead);
-    if (!anyAlive) {
+    const allWavesSpawned = waveIdx >= WAVE_QUEUE.length;
+    if (!anyAlive && allWavesSpawned) {
       state.objectives[0].done = true;
       // Paced victory sequence: breathe, then prompt
       speak('The last Horridor falls...', 2200);
       setTimeout(() => speak('Silence. Just the torches flickering.', 2200), 2200);
-      setTimeout(() => speak('Now — get to Mum\'s cage. Press E to bash it open.', 3400), 4600);
+      setTimeout(() => speak('Now — get to Mum\'s cage. Press A or E to bash it open.', 3400), 4600);
+    } else if (!anyAlive && !allWavesSpawned) {
+      // Speed up the next wave so there's no dead time
+      waveTimer = Math.max(waveTimer, NEXT_WAVE_DELAY - 1.5);
     }
   }
 
@@ -568,14 +572,45 @@
   }
 
   // ---------- Enemies ----------
+  // Staged wave queue: enemies arrive one at a time, well-spread, so Chester isn't
+  // overwhelmed. Each entry: {kind, x, y}. They spawn on a timer AND whenever the
+  // arena has fewer than MAX_ACTIVE alive enemies.
+  const WAVE_QUEUE = [
+    { kind: 'drip',   x: WORLD_W/2 - 520, y: ARENA.y1 + 480 },
+    { kind: 'expre',  x: WORLD_W/2 + 480, y: ARENA.y1 + 200 },
+    { kind: 'socky',  x: WORLD_W/2 - 480, y: ARENA.y1 + 200 },
+    { kind: 'exlena', x: WORLD_W/2 + 20,  y: ARENA.y1 + 160 },
+  ];
+  const MAX_ACTIVE = 2;          // never more than 2 alive at once (until Exlena's minions)
+  const NEXT_WAVE_DELAY = 6.5;   // seconds between auto-spawns when slot is open
+  let waveIdx = 0, waveTimer = 0;
+
   function spawnEnemies() {
     enemies.length = 0;
     exlenaMinionsSpawned = false;
-    // FINAL BOSS: one of each character. Each is a mini-boss with heavy HP.
-    enemies.push(makeEnemy('drip',   WORLD_W/2 - 380, ARENA.y1 + 440));
-    enemies.push(makeEnemy('expre',  WORLD_W/2 - 140, ARENA.y1 + 260));
-    enemies.push(makeEnemy('socky',  WORLD_W/2 + 120, ARENA.y1 + 260));
-    enemies.push(makeEnemy('exlena', WORLD_W/2 + 40,  ARENA.y1 + 380));
+    waveIdx = 0; waveTimer = 0;
+    // Seed the fight with the easiest enemy only — the rest arrive in waves.
+    const first = WAVE_QUEUE[0];
+    enemies.push(makeEnemy(first.kind, first.x, first.y));
+    waveIdx = 1;
+  }
+
+  function tickWaveSpawns(dt) {
+    if (waveIdx >= WAVE_QUEUE.length) return;
+    const aliveCount = enemies.filter(e => !e.dead).length;
+    if (aliveCount < MAX_ACTIVE) {
+      waveTimer += dt;
+      if (waveTimer >= NEXT_WAVE_DELAY) {
+        const next = WAVE_QUEUE[waveIdx++];
+        enemies.push(makeEnemy(next.kind, next.x, next.y));
+        speak('Another Horridor joins the fight — ' + ENEMY_DEFS[next.kind].name + '!', 2200);
+        state.screenFlash = 0.2;
+        waveTimer = 0;
+      }
+    } else {
+      // Reset timer while arena is full so the pause feels deliberate
+      waveTimer = Math.max(0, waveTimer - dt * 0.5);
+    }
   }
 
   function updateEnemy(e, dt) {
@@ -681,7 +716,7 @@
     // Punch / cage bash (A button / E key)
     if (wasPressed('e', 'enter')) {
       // Near cage & all enemies defeated?
-      const allDead = enemies.every(x => x.dead);
+      const allDead = enemies.every(x => x.dead) && waveIdx >= WAVE_QUEUE.length;
       const nearCage = (player.x + player.w/2 > cage.x - 30 && player.x + player.w/2 < cage.x + cage.w + 30 &&
                        player.y + player.h/2 > cage.y - 30 && player.y + player.h/2 < cage.y + cage.h + 60);
       if (allDead && nearCage && state.cageBroken < 3) {
@@ -715,7 +750,8 @@
     inkybin.bob += dt * 3;
     inkybinFight();
 
-    // Enemies
+    // Enemies — stagger-spawn any pending waves first
+    tickWaveSpawns(dt);
     for (const e of enemies) updateEnemy(e, dt);
 
     // Projectiles
@@ -1023,11 +1059,13 @@
       ctx.fillText((o.done ? '✓ ' : '• ') + o.text, VIEW_W - 12, oy);
       oy += 14;
     }
-    // Count of enemies left
+    // Count of enemies left — alive now + still waiting to spawn
     const alive = enemies.filter(e => !e.dead).length;
-    ctx.fillStyle = alive > 0 ? '#e34d6f' : '#8dc16b';
+    const pending = Math.max(0, WAVE_QUEUE.length - waveIdx);
+    const totalLeft = alive + pending;
+    ctx.fillStyle = totalLeft > 0 ? '#e34d6f' : '#8dc16b';
     ctx.font = '800 14px system-ui'; ctx.textAlign = 'left';
-    ctx.fillText(`Horridors remaining: ${alive}`, 180, 26);
+    ctx.fillText(`Horridors remaining: ${totalLeft}`, 180, 26);
     // Grabpack next-element chip (shown bottom-left)
     const nextEl = GRABPACK_ELEMENTS[player.elemIdx];
     const chipX = 16, chipY = VIEW_H - 44, chipW = 150, chipH = 32;

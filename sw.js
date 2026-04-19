@@ -1,6 +1,6 @@
 // Horridors — Service Worker (offline cache)
 // Cache-first strategy for static assets. Bump CACHE_VERSION on any meaningful change.
-const CACHE_VERSION = 'horridors-v12-l8-grabpack';
+const CACHE_VERSION = 'horridors-v13-l8-waves-menu';
 const ASSETS = [
   './',
   './index.html',

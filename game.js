@@ -1124,6 +1124,43 @@ function jumpToLevel(n) {
   const btn = document.getElementById(id);
   if (btn) btn.addEventListener('click', () => jumpToLevel(i + 1));
 });
+
+// ---------- Return to title / level selection ----------
+// Exposed globally so any level, the X/menu touch button, or Escape key can call it.
+window.__returnToTitle = function returnToTitle() {
+  // Stop every running level
+  if (window.__horridorsL1 && window.__horridorsL1.stop) {
+    try { window.__horridorsL1.stop(); } catch(e) {}
+  }
+  for (const k of ['__horridorsL2','__horridorsL3','__horridorsL4','__horridorsL5','__horridorsL6','__horridorsL7','__horridorsL8']) {
+    const L = window[k]; if (L && L.stop) { try { L.stop(); } catch(e) {} }
+  }
+  // Hide every in-game overlay
+  ['overlay-end','overlay-caught','overlay-intro','overlay-mother',
+   'overlay-l2-title','overlay-l2-end','overlay-l3-title','overlay-l3-end',
+   'overlay-l4-title','overlay-l4-end','overlay-l5-intro','overlay-l5-end',
+   'overlay-l6-intro','overlay-l6-end','overlay-l7-intro','overlay-l7-end',
+   'overlay-l8-intro','overlay-l8-end','overlay-credits',
+   'overlay-note','overlay-notes','overlay-puzzle'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+  });
+  const hud = document.getElementById('hud'); if (hud) hud.classList.add('hidden');
+  // Show the title / level-select
+  const title = document.getElementById('overlay-title');
+  if (title) title.classList.remove('hidden');
+};
+
+// Top-level Escape handler — works even when a level module hasn't consumed it.
+// Triggered by keyboard Escape and by the touch X button (which sends 'Escape').
+window.addEventListener('keydown', (e) => {
+  const k = (e.key || '').toLowerCase();
+  if (k !== 'escape') return;
+  // Only trigger when actually playing (title visible means we're already there)
+  const title = document.getElementById('overlay-title');
+  if (title && !title.classList.contains('hidden')) return;
+  window.__returnToTitle();
+});
 document.getElementById('btn-retry').addEventListener('click', () => {
   // Only L1 should handle this when L1 is actually running. L2 and L3 attach their own guarded handlers.
   if (l1Running) resetGame();
