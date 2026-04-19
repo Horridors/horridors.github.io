@@ -1977,12 +1977,143 @@ body.pseudo-fullscreen #game-frame {
 /* Hide the portrait nag overlay while in pseudo-fullscreen */
 body.pseudo-fullscreen #orient-hint { display: none !important; }
 
-/* ---- Portrait rotation fallback ----
-   When the phone is held in portrait AND pseudo-fullscreen is active AND
-   we couldn't lock orientation, rotate the game 90° so it fills the screen
-   as landscape. Uses viewport units swapped to match the rotation. */
+/* ============================================================
+   Portrait orientation — TWO modes
+   ============================================================
+
+   The game was originally built for landscape (1.6:1 aspect). On a phone
+   held in portrait we have two options:
+
+   1. NATIVE PORTRAIT (default — body.portrait-native + pseudo-fullscreen):
+      Canvas sits at the top of the viewport at full width; the bottom
+      portion becomes a dedicated control strip with the thumbstick on the
+      left and A/B buttons on the right. No rotation. Feels like a real
+      mobile game, and crucially the whole canvas is always visible
+      without the player having to tilt the phone.
+
+   2. ROTATED LANDSCAPE (legacy — body.pseudo-fullscreen without
+      .portrait-native): #game-root rotates 90° so the game fills the
+      whole screen in landscape while the phone is held vertically. This
+      is kept as a fallback / alternative we can toggle from JS.
+   ============================================================ */
+
+/* ---- Mode 1: Native portrait (preferred for phones) ---- */
 @media (orientation: portrait) {
-  body.pseudo-fullscreen #game-root {
+  body.pseudo-fullscreen.portrait-native #game-root {
+    /* No rotation — keep the game-root upright in the portrait viewport. */
+    width: 100vw !important;
+    height: 100svh !important;
+    transform: none !important;
+    top: 0 !important;
+    left: 0 !important;
+    /* Override grid-centering so the frame sits at the TOP instead of
+       vertically centered with empty space above AND below. */
+    display: block !important;
+  }
+  body.pseudo-fullscreen.portrait-native #game-frame {
+    /* Full width, aspect-locked 1.6:1, pinned to the top of the viewport.
+       The remaining space (100svh - width/1.6) becomes the control strip. */
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100vw !important;
+    height: calc(100vw / 1.6) !important;
+    max-width: 100vw !important;
+    max-height: 100svh !important;
+    margin: 0 !important;
+  }
+  /* The control strip is the area between the game-frame bottom and the
+     viewport bottom. Provide a subtle divider so it reads as a distinct
+     zone. The strip is a visual guide; touch controls themselves live in
+     #touch-controls (position:fixed full screen) and pin themselves to the
+     bottom corners so they naturally land inside this strip. */
+  body.pseudo-fullscreen.portrait-native #game-root::after {
+    content: '';
+    position: absolute;
+    top: calc(100vw / 1.6);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(60, 30, 50, 0.28) 0%, transparent 70%),
+      linear-gradient(180deg, #0c0810 0%, #060409 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  /* Touch controls: upright (no rotation). Shrink stick/buttons a touch so
+     they share the strip comfortably on narrow phones. */
+  body.pseudo-fullscreen.portrait-native.has-touch #touch-controls {
+    display: block !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100svh !important;
+    transform: none !important;
+    z-index: 2147483647 !important;
+  }
+  body.pseudo-fullscreen.portrait-native .touch-stick {
+    width: 150px !important;
+    height: 150px !important;
+    bottom: max(18px, env(safe-area-inset-bottom, 18px)) !important;
+    left: max(14px, env(safe-area-inset-left, 14px)) !important;
+  }
+  body.pseudo-fullscreen.portrait-native .touch-actions {
+    bottom: max(18px, env(safe-area-inset-bottom, 18px)) !important;
+    right: max(14px, env(safe-area-inset-right, 14px)) !important;
+    gap: 12px !important;
+  }
+  body.pseudo-fullscreen.portrait-native .touch-btn.action {
+    width: 72px !important;
+    height: 72px !important;
+  }
+  /* Menu button: anchor to the real viewport top-left, inside the canvas
+     frame, not rotated. */
+  body.pseudo-fullscreen.portrait-native #touch-menu-btn {
+    top: max(54px, env(safe-area-inset-top, 54px)) !important;
+    left: 12px !important;
+    transform: none !important;
+  }
+  /* Fullscreen button: upright, top-right. */
+  body.pseudo-fullscreen.portrait-native #fullscreen-btn {
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
+    left: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+  }
+  /* Orient-hint and portrait nag should stay hidden in this mode. */
+  body.pseudo-fullscreen.portrait-native #orient-hint { display: none !important; }
+
+  /* Overlays should cover the ENTIRE viewport in native portrait, not just
+     the small canvas area at the top. Their base rule uses position:absolute
+     inset:0 which scopes them to the nearest positioned ancestor (#game-frame,
+     which is 360×225 here). Escape that so the player has the full screen
+     for intro text, level select, notes, and puzzles. */
+  body.pseudo-fullscreen.portrait-native .overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 2147483640 !important; /* above canvas + controls, below menu-btn */
+  }
+  /* Touch controls are hidden while any overlay is open to prevent accidental
+     taps on the thumbstick when reaching for the CTA button on a tall overlay. */
+  body.pseudo-fullscreen.portrait-native .overlay:not(.hidden) ~ #touch-controls,
+  body.pseudo-fullscreen.portrait-native:has(.overlay:not(.hidden)) #touch-controls {
+    opacity: 0.25 !important;
+    pointer-events: none !important;
+  }
+}
+
+/* ---- Mode 2: Rotated landscape fallback ----
+   Used when body.pseudo-fullscreen is active but .portrait-native is NOT.
+   Rotates #game-root 90° so the game fills the screen as landscape. */
+@media (orientation: portrait) {
+  body.pseudo-fullscreen:not(.portrait-native) #game-root {
     /* Swap: use viewport HEIGHT as the horizontal axis, WIDTH as vertical */
     width: 100svh !important;
     height: 100vw !important;
@@ -1992,22 +2123,13 @@ body.pseudo-fullscreen #orient-hint { display: none !important; }
     top: 0 !important;
     left: 0 !important;
   }
-  body.pseudo-fullscreen #game-frame {
-    /* Now the frame lives inside a rotated container that is 100svh wide
-       and 100vw tall, so size it relative to those. The base rule's
-       max-width:100vw / max-height:100vh must also be swapped, or the
-       frame gets squished to the un-rotated viewport dimensions. */
+  body.pseudo-fullscreen:not(.portrait-native) #game-frame {
     width: min(100svh, calc(100vw * 1.6)) !important;
     height: min(100vw, calc(100svh / 1.6)) !important;
     max-width: 100svh !important;
     max-height: 100vw !important;
   }
-  /* Re-show touch controls (they were hidden by the portrait media query
-     above, but that rule excludes .pseudo-fullscreen). We also need the
-     controls to rotate with the game so they stay anchored to the bottom
-     corners of the now-landscape view. The controls live in <body>, not
-     inside #game-root, so we rotate them to match. */
-  body.pseudo-fullscreen.has-touch #touch-controls {
+  body.pseudo-fullscreen.has-touch:not(.portrait-native) #touch-controls {
     display: block !important;
     position: fixed !important;
     top: 0 !important;
@@ -2018,8 +2140,7 @@ body.pseudo-fullscreen #orient-hint { display: none !important; }
     transform-origin: top left !important;
     z-index: 2147483647 !important;
   }
-  /* Fullscreen button sticks to the rotated landscape top-right too */
-  body.pseudo-fullscreen #fullscreen-btn {
+  body.pseudo-fullscreen:not(.portrait-native) #fullscreen-btn {
     position: fixed !important;
     top: auto !important;
     bottom: 10px !important;

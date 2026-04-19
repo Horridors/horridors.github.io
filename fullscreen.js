@@ -56,24 +56,47 @@
     return Promise.reject(new Error('no exit fullscreen api'));
   }
 
+  // Portrait mode preference: 'native' (letterboxed, canvas on top, controls
+  // below) OR 'rotated' (rotate 90° to fill screen as landscape). Default
+  // is 'native' — it's easier for a 7-year-old because the phone stays
+  // upright and both hands can reach the controls naturally. Stored as a
+  // transient in-memory preference; no localStorage per site constraints.
+  let portraitMode = 'native';
+  window.__setPortraitMode = function(mode) {
+    if (mode !== 'native' && mode !== 'rotated') return;
+    portraitMode = mode;
+    if (mode === 'native') document.body.classList.add('portrait-native');
+    else                    document.body.classList.remove('portrait-native');
+    window.dispatchEvent(new Event('resize'));
+  };
+  window.__getPortraitMode = function() { return portraitMode; };
+
   function enterPseudo() {
     if (pseudoOn) return;
     pseudoOn = true;
     document.body.classList.add('pseudo-fullscreen');
+    // Apply the current portrait mode preference.
+    if (portraitMode === 'native') {
+      document.body.classList.add('portrait-native');
+    }
     // Force a resize event so any canvas-DPR logic re-layouts
     window.dispatchEvent(new Event('resize'));
-    // Try to lock landscape on supported devices (rotates phone in-app automatically)
-    try {
-      if (screen.orientation && screen.orientation.lock) {
-        screen.orientation.lock('landscape').catch(() => {});
-      }
-    } catch (e) {}
+    // Only try to lock orientation when the user has chosen rotated mode.
+    // In native portrait mode we WANT the phone to stay upright.
+    if (portraitMode === 'rotated') {
+      try {
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('landscape').catch(() => {});
+        }
+      } catch (e) {}
+    }
   }
 
   function exitPseudo() {
     if (!pseudoOn) return;
     pseudoOn = false;
     document.body.classList.remove('pseudo-fullscreen');
+    document.body.classList.remove('portrait-native');
     window.dispatchEvent(new Event('resize'));
     try {
       if (screen.orientation && screen.orientation.unlock) {
