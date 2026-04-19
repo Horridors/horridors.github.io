@@ -210,6 +210,21 @@ const RIGHTMOST_ROOM_RIGHT = Math.max(...Object.values(ROOMS).map(r => r.x + r.w
 // Strip between rooms row bottom and corridor top, full world width
 addWall(0, ROOM_BOT, LEFTMOST_ROOM_LEFT, CORR_TOP - ROOM_BOT);
 addWall(RIGHTMOST_ROOM_RIGHT, ROOM_BOT, WORLD_W - RIGHTMOST_ROOM_RIGHT, CORR_TOP - ROOM_BOT);
+// Also seal the strips BETWEEN adjacent rooms so the player can't slip into the
+// gap that separates Toy↔Puzzle, Puzzle↔Supply, or Supply↔Library (the area
+// above the corridor where two rooms' side walls face each other).
+{
+  const sorted = Object.values(ROOMS).slice().sort((a, b) => a.x - b.x);
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const a = sorted[i];
+    const b = sorted[i + 1];
+    const gapLeft  = a.x + a.w;
+    const gapRight = b.x;
+    if (gapRight > gapLeft) {
+      addWall(gapLeft, ROOM_BOT, gapRight - gapLeft, CORR_TOP - ROOM_BOT);
+    }
+  }
+}
 // Strip above rooms (y=0..ROOM_TOP), full world width — keep player out of the sky
 addWall(0, 0, WORLD_W, ROOM_TOP);
 
