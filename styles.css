@@ -1253,6 +1253,110 @@ body {
   0% { transform: translateY(12px) scale(0.92); opacity: 0; }
   100% { transform: translateY(0) scale(1); opacity: 1; }
 }
+
+/* -----------------------------------------------------------
+   Ex Preshon: Origin — per-element SVG animations (post-L3 tease)
+   Pixar-ish subtle motion: bobs, pulses, flickers — no jump-scares.
+   ----------------------------------------------------------- */
+/* Panel 1 */
+#l3-comic-p1 .anim-chester-peer { transform-box: fill-box; transform-origin: center; animation: l3-peer 2.8s ease-in-out infinite; }
+@keyframes l3-peer {
+  0%,100% { transform: translate(0, 0); }
+  50%     { transform: translate(2px, -1px); }
+}
+#l3-comic-p1 .anim-yearbook { transform-box: fill-box; transform-origin: center; animation: l3-yearbook 3.4s ease-in-out infinite; }
+@keyframes l3-yearbook {
+  0%   { transform: translate(0, 4px) rotate(-2deg); opacity: 0; }
+  20%  { opacity: 1; }
+  60%  { transform: translate(0, -2px) rotate(1deg); }
+  100% { transform: translate(0, 4px) rotate(-2deg); opacity: 1; }
+}
+#l3-comic-p1 .anim-mote   { animation: l3-mote 3.6s ease-in-out infinite; }
+#l3-comic-p1 .anim-mote-2 { animation-delay: 0.7s; animation-duration: 4.2s; }
+#l3-comic-p1 .anim-mote-3 { animation-delay: 1.4s; animation-duration: 3.1s; }
+#l3-comic-p1 .anim-mote-4 { animation-delay: 2.1s; animation-duration: 4.8s; }
+@keyframes l3-mote {
+  0%   { transform: translate(0, 0);  opacity: 0; }
+  30%  { opacity: 0.7; }
+  100% { transform: translate(-6px, -18px); opacity: 0; }
+}
+#l3-comic-p1 .anim-flicker { animation: l3-flicker 5s steps(1,end) infinite; }
+@keyframes l3-flicker {
+  0%,  92%, 94%, 100% { opacity: 0; }
+  93%                 { opacity: 0.18; }
+}
+
+/* Panel 2 */
+#l3-comic-p2 svg { animation: l3-zoom 7s ease-in-out infinite; transform-origin: 60% 60%; }
+@keyframes l3-zoom {
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.06); }
+}
+#l3-comic-p2 .anim-chalk   { animation: l3-chalk 3s steps(1,end) infinite; }
+#l3-comic-p2 .anim-chalk-2 { animation-delay: 0.4s; }
+@keyframes l3-chalk {
+  0%,   86%, 90%, 100% { opacity: 1; }
+  88%,  89%            { opacity: 0.35; }
+}
+#l3-comic-p2 .anim-blink { transform-box: fill-box; transform-origin: center; animation: l3-blink 4.5s steps(1,end) infinite; }
+@keyframes l3-blink {
+  0%,  92%, 96%, 100% { transform: scaleY(0); }
+  94%                 { transform: scaleY(1); }
+}
+#l3-comic-p2 .anim-hand { animation: l3-hand 3.8s ease-in-out infinite; }
+@keyframes l3-hand {
+  0%,100% { transform: translate(0, 0); }
+  50%     { transform: translate(-1px, 0.5px); }
+}
+#l3-comic-p2 .anim-scan { animation: l3-scan 2.6s linear infinite; }
+@keyframes l3-scan {
+  0%   { transform: translateY(-118px); }
+  100% { transform: translateY(118px); }
+}
+
+/* Panel 3 */
+#l3-comic-p3 .anim-torch { animation: l3-torch 1.5s ease-in-out infinite; }
+@keyframes l3-torch {
+  0%,100% { transform: scale(1);    opacity: 0.85; }
+  47%     { transform: scale(1.08); opacity: 1; }
+  53%     { transform: scale(0.94); opacity: 0.7; }
+}
+#l3-comic-p3 .anim-eye-red  { transform-box: fill-box; transform-origin: center; animation: l3-eye-red 1.8s ease-in-out infinite; }
+@keyframes l3-eye-red {
+  0%,100% { transform: scale(1);   opacity: 0.9; }
+  50%     { transform: scale(1.35); opacity: 1;   filter: drop-shadow(0 0 3px #ff3030); }
+}
+#l3-comic-p3 .anim-eye-pink { transform-box: fill-box; transform-origin: center; animation: l3-eye-pink 2.2s ease-in-out infinite; }
+@keyframes l3-eye-pink {
+  0%,100% { transform: scale(1);   opacity: 0.9; }
+  50%     { transform: scale(1.25); opacity: 1; }
+}
+#l3-comic-p3 .anim-neon { animation: l3-neon 2.4s steps(1,end) infinite; }
+@keyframes l3-neon {
+  0%, 80%, 84%, 88%, 92%, 100% { opacity: 1; filter: drop-shadow(0 0 2px #ff5fa2); }
+  82%, 90%                      { opacity: 0.3; filter: none; }
+}
+#l3-comic-p3 .anim-subtitle { animation: l3-subtitle 3.5s ease-in-out infinite; }
+@keyframes l3-subtitle {
+  0%,100% { opacity: 0.7; letter-spacing: 1px; }
+  50%     { opacity: 1;   letter-spacing: 2px; }
+}
+#l3-comic-p3 .anim-drop   { animation: l3-drop 3s ease-in infinite; }
+#l3-comic-p3 .anim-drop-2 { animation-delay: 1.4s; animation-duration: 2.6s; }
+@keyframes l3-drop {
+  0%   { opacity: 0; transform: translateY(0); }
+  10%  { opacity: 0.8; }
+  90%  { opacity: 0.5; }
+  100% { opacity: 0; transform: translateY(70px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #l3-comic-p1 .anim-chester-peer, #l3-comic-p1 .anim-yearbook, #l3-comic-p1 .anim-mote, #l3-comic-p1 .anim-flicker,
+  #l3-comic-p2 svg, #l3-comic-p2 .anim-chalk, #l3-comic-p2 .anim-blink, #l3-comic-p2 .anim-hand, #l3-comic-p2 .anim-scan,
+  #l3-comic-p3 .anim-torch, #l3-comic-p3 .anim-eye-red, #l3-comic-p3 .anim-eye-pink, #l3-comic-p3 .anim-neon, #l3-comic-p3 .anim-subtitle, #l3-comic-p3 .anim-drop {
+    animation: none;
+  }
+}
 .comic-caption {
   position: absolute;
   left: 6px;

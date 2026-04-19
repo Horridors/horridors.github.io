@@ -49,18 +49,38 @@
   }
 
   // ---------- Progression --------------------------------------------------
-  const progress = { 1: false, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false };
-  window.__progress = progress;
+  // Per-difficulty-tier progression: switching to a harder tier does NOT inherit
+  // easier-tier progress. This prevents a 7-year-old from hopping into L8 on
+  // Extreme just because they cleared L7 on Easy.
+  const TIERS_LIST = ['easy', 'medium', 'hard', 'extreme'];
+  const progressByTier = {
+    easy:    { 1:false,2:false,3:false,4:false,5:false,6:false,7:false,8:false },
+    medium:  { 1:false,2:false,3:false,4:false,5:false,6:false,7:false,8:false },
+    hard:    { 1:false,2:false,3:false,4:false,5:false,6:false,7:false,8:false },
+    extreme: { 1:false,2:false,3:false,4:false,5:false,6:false,7:false,8:false },
+  };
+  function currentTierId() {
+    try { return (window.__difficulty && window.__difficulty.id && window.__difficulty.id()) || 'easy'; }
+    catch (e) { return 'easy'; }
+  }
+  function currentProgress() {
+    return progressByTier[currentTierId()] || progressByTier.easy;
+  }
+  // Back-compat: __progress still points at the ACTIVE tier's progress object.
+  Object.defineProperty(window, '__progress', {
+    get() { return currentProgress(); },
+    configurable: true,
+  });
 
   function isUnlocked(n) {
     if (n <= 1) return true;
-    return !!progress[n - 1];
+    return !!currentProgress()[n - 1];
   }
   window.__isLevelUnlocked = isUnlocked;
 
   function markComplete(n) {
     if (n >= 1 && n <= 8) {
-      progress[n] = true;
+      currentProgress()[n] = true;
       refreshJumpButtonLocks();
       // L8 completion → show the certificate.
       if (n === 8) {
@@ -71,10 +91,22 @@
   window.__markLevelComplete = markComplete;
 
   function unlockAll() {
-    for (let i = 1; i <= 8; i++) progress[i] = true;
+    // Unlock every tier — used by dev helpers and by the cert-key recovery flow.
+    for (const t of TIERS_LIST) {
+      for (let i = 1; i <= 8; i++) progressByTier[t][i] = true;
+    }
     refreshJumpButtonLocks();
   }
   window.__unlockAllLevels = unlockAll;
+
+  // Re-render jump-button locks whenever difficulty changes.
+  setTimeout(() => {
+    try {
+      if (window.__difficulty && window.__difficulty.onChange) {
+        window.__difficulty.onChange(() => { refreshJumpButtonLocks(); });
+      }
+    } catch (e) {}
+  }, 100);
 
   function refreshJumpButtonLocks() {
     for (let n = 1; n <= 8; n++) {

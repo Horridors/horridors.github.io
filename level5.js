@@ -321,11 +321,13 @@
   // Before freeing: she lives in her cell and signals.
   // Visual position inside cell (bobbing slightly)
   function drawThistleInCell() {
+    const tcx = (THISTLE.x1 + THISTLE.x2) / 2;
+    const tcy = (THISTLE.y1 + THISTLE.y2) / 2;
     if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
-      window.HorridorsSprites.drawCharacter(ctx, 'thistle', cell.cx, cell.cy + 30, 1, 56);
+      window.HorridorsSprites.drawCharacter(ctx, 'thistle', tcx, tcy + 30, 1, 56);
       return;
     }
-}
+  }
 
   // Thistle sprite (child-drawing style): yellow body, sheriff hat, lightning ear,
   // big eyes, smile, chest star.  cx/cy = feet-center.
