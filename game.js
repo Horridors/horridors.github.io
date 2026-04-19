@@ -1554,6 +1554,21 @@ function drawWalls() {
     ctx.fillRect(w.x, w.y, w.w, w.h);
     ctx.strokeRect(w.x + 0.5, w.y + 0.5, w.w - 1, w.h - 1);
   }
+  // Seal off the visual "holes" in the room bottom / corridor top where the
+  // door gaps used to leave an open threshold. The actual door-leaf is
+  // drawn on top of these fills by drawDoors(), so the result is a
+  // continuous wall broken only by the door itself. These are purely
+  // cosmetic — collisions are still handled by the door entries.
+  for (const room of Object.values(ROOMS)) {
+    const gx = room.doorX - 40;
+    const gw = 80;
+    // Room's bottom wall gap
+    ctx.fillRect(gx, ROOM_BOT, gw, 12);
+    ctx.strokeRect(gx + 0.5, ROOM_BOT + 0.5, gw - 1, 11);
+    // Corridor's top wall gap
+    ctx.fillRect(gx, CORR_TOP - 12, gw, 12);
+    ctx.strokeRect(gx + 0.5, CORR_TOP - 12 + 0.5, gw - 1, 11);
+  }
 }
 
 function drawDoors() {
