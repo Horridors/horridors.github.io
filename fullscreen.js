@@ -218,4 +218,97 @@
   ['pointerdown', 'keydown', 'touchstart'].forEach((evt) => {
     window.addEventListener(evt, autoPrompt, { once: true, passive: true });
   });
+
+  // ---------- Mobile Chrome URL-bar hiding ----------
+  // On Samsung/Android Chrome the URL bar stays visible because pseudo-
+  // fullscreen disables scrolling (so the auto-hide never triggers). The
+  // ONLY way to truly hide it is the Fullscreen API — which requires a
+  // user gesture.
+  //
+  // Strategy: show a "Tap to Play Fullscreen" splash on first mobile visit.
+  // The tap IS the user gesture, so we can call requestFullscreen() inside
+  // the handler synchronously. This is standard for mobile web games.
+  function needsFullscreenSplash() {
+    const touch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    if (!touch) return false;
+    if (inRealFullscreen()) return false;
+    if (!canRealFullscreen()) return false;
+    // Skip on iOS — Fullscreen API is blocked for web pages anyway.
+    if (/iphone|ipod|ipad/i.test(navigator.userAgent) && !/crios/i.test(navigator.userAgent)) return false;
+    return true;
+  }
+
+  function showFullscreenSplash() {
+    if (document.getElementById('fs-splash')) return;
+    const splash = document.createElement('div');
+    splash.id = 'fs-splash';
+    splash.setAttribute('role', 'button');
+    splash.setAttribute('aria-label', 'Tap to play in fullscreen');
+    splash.innerHTML = `
+      <div class="fs-splash-inner">
+        <div class="fs-splash-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 9V5a1 1 0 0 1 1-1h4"/>
+            <path d="M20 9V5a1 1 0 0 0-1-1h-4"/>
+            <path d="M4 15v4a1 1 0 0 0 1 1h4"/>
+            <path d="M20 15v4a1 1 0 0 1-1 1h-4"/>
+          </svg>
+        </div>
+        <div class="fs-splash-title">HORRIDORS</div>
+        <div class="fs-splash-cta">Tap to play fullscreen</div>
+        <div class="fs-splash-sub">Hides the browser bar for the best experience</div>
+      </div>
+    `;
+    document.body.appendChild(splash);
+
+    // One-shot handler. The tap itself is the user gesture that
+    // satisfies the Fullscreen API requirement.
+    function handleTap(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      splash.removeEventListener('pointerdown', handleTap);
+      splash.removeEventListener('touchstart', handleTap);
+      splash.removeEventListener('click', handleTap);
+
+      // Target documentElement — most compatible on Android Chrome.
+      requestReal(document.documentElement).then(() => {
+        // Real fullscreen engaged. Drop pseudo if it was on to avoid
+        // the double-rotation (real FS handles orientation itself).
+        if (pseudoOn) exitPseudo();
+        // Try to lock orientation to landscape now that we're in real FS.
+        try {
+          if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(() => {});
+          }
+        } catch (_) {}
+      }).catch((err) => {
+        console.warn('[Horridors] splash fullscreen failed, using pseudo:', err);
+        if (!pseudoOn) enterPseudo();
+      });
+      splash.classList.add('fs-splash-out');
+      setTimeout(() => splash.remove(), 400);
+    }
+    // Listen for both touch and click to be safe.
+    splash.addEventListener('touchstart', handleTap, { passive: false });
+    splash.addEventListener('pointerdown', handleTap);
+    splash.addEventListener('click', handleTap);
+  }
+
+  // Show splash after DOM ready so it sits on top of the game.
+  function maybeSplash() {
+    if (needsFullscreenSplash()) showFullscreenSplash();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', maybeSplash, { once: true });
+  } else {
+    maybeSplash();
+  }
+
+  // If the user exits real fullscreen (swipe down, back button) and we're
+  // on mobile portrait, restore pseudo-fullscreen so the game still fits.
+  document.addEventListener('fullscreenchange', () => {
+    if (!inRealFullscreen() && isMobilePortrait() && !pseudoOn) {
+      enterPseudo();
+    }
+  });
 })();

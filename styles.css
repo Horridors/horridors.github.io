@@ -2030,3 +2030,82 @@ body.pseudo-fullscreen #fullscreen-btn .fs-exit,
   width: min(100vw, calc(100vh * 1.6));
   height: min(100vh, calc(100vw / 1.6));
 }
+
+/* ============================================================
+   Fullscreen splash (mobile only).
+   Shown on first load on Android Chrome so the user's tap can
+   satisfy the Fullscreen API's user-gesture requirement.
+   ============================================================ */
+#fs-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646; /* just below pseudo-fullscreen's game-root */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(60, 20, 30, 0.85) 0%, rgba(10, 6, 12, 0.96) 70%),
+    #07050a;
+  color: #ffd94a;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  animation: fs-splash-in 200ms ease;
+}
+@keyframes fs-splash-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.fs-splash-out {
+  animation: fs-splash-fade 380ms ease forwards !important;
+}
+@keyframes fs-splash-fade {
+  to { opacity: 0; transform: scale(1.02); }
+}
+.fs-splash-inner {
+  text-align: center;
+  padding: 0 24px;
+  max-width: 360px;
+}
+.fs-splash-icon {
+  color: rgba(255, 217, 74, 0.85);
+  margin-bottom: 16px;
+  filter: drop-shadow(0 0 18px rgba(255, 120, 120, 0.35));
+  animation: fs-pulse 1.6s ease-in-out infinite;
+}
+@keyframes fs-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50%      { transform: scale(1.08); opacity: 1; }
+}
+.fs-splash-title {
+  font-family: 'Creepster', system-ui, sans-serif;
+  font-size: clamp(44px, 11vw, 64px);
+  line-height: 1;
+  color: #ff4a4a;
+  text-shadow: 0 3px 0 rgba(0,0,0,0.5), 0 0 22px rgba(255, 74, 74, 0.35);
+  letter-spacing: 1.5px;
+  margin: 0 0 18px 0;
+}
+.fs-splash-cta {
+  font-size: clamp(17px, 4.5vw, 22px);
+  font-weight: 800;
+  color: #ffd94a;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+.fs-splash-sub {
+  font-size: 13px;
+  color: rgba(255, 240, 200, 0.6);
+  font-weight: 500;
+  letter-spacing: 0.4px;
+}
+/* Hide splash when game root is actually rotated/scaled so two UIs don't
+   fight each other. */
+body.pseudo-fullscreen #fs-splash {
+  /* Keep it on top even when pseudo is active \u2014 first tap should still
+     trigger real fullscreen. */
+  z-index: 2147483647;
+}
