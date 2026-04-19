@@ -1990,91 +1990,24 @@ function drawItem(it) {
 }
 
 function drawPlayer() {
-  const x = player.x + player.w/2;
-  const y = player.y + player.h/2;
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.4)';
-  ctx.beginPath(); ctx.ellipse(x, y + 12, 10, 4, 0, 0, Math.PI*2); ctx.fill();
-  // Yellow raincoat body
-  ctx.fillStyle = '#ffd94a';
-  ctx.fillRect(x - 8, y - 4, 16, 16);
-  ctx.strokeStyle = '#1a1a22'; ctx.lineWidth = 1;
-  ctx.strokeRect(x - 7.5, y - 3.5, 15, 15);
-  // coat button line
-  ctx.fillStyle = '#c7a010';
-  ctx.fillRect(x - 0.5, y - 2, 1, 12);
-  // Hood (rounded) + face
-  ctx.fillStyle = '#ffd94a';
-  ctx.beginPath(); ctx.arc(x, y - 6, 8, Math.PI, 0); ctx.closePath(); ctx.fill();
-  ctx.strokeStyle = '#c7a010'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.arc(x, y - 6, 8, Math.PI, 0); ctx.stroke();
-  // Face peek (skin)
-  ctx.fillStyle = '#f5d0a8';
-  ctx.beginPath(); ctx.arc(x, y - 7, 5, 0, Math.PI*2); ctx.fill();
-  // Eyes
-  ctx.fillStyle = '#1a1a1a';
-  const fdx = Math.cos(player.facing), fdy = Math.sin(player.facing);
-  ctx.fillRect(x - 2.5 + fdx*1.2, y - 8 + fdy*1.2, 1.5, 1.5);
-  ctx.fillRect(x + 1 + fdx*1.2, y - 8 + fdy*1.2, 1.5, 1.5);
-  // Small smile
-  ctx.strokeStyle = '#8a3a1a'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.arc(x, y - 5, 1.5, 0.1 * Math.PI, 0.9 * Math.PI); ctx.stroke();
-  // Walk legs (dark boots)
-  const phase = Math.sin(player.walkPhase);
-  ctx.fillStyle = '#1a1a30';
-  ctx.fillRect(x - 6, y + 10 + phase * 1, 4, 4);
-  ctx.fillRect(x + 2, y + 10 - phase * 1, 4, 4);
+  if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
+    window.HorridorsSprites.drawCharacter(ctx, 'chester', player.x + player.w/2, player.y + player.h + 8, Math.cos(player.facing) >= 0 ? 1 : -1, 56);
+    return;
+  }
 }
 
 function drawMonster() {
-  const x = monster.x + monster.w/2;
-  const y = monster.y + monster.h/2;
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx.beginPath(); ctx.ellipse(x, y + 16, 14, 5, 0, 0, Math.PI*2); ctx.fill();
-  // Body — patchwork tall
-  ctx.fillStyle = '#3a2a3a';
-  ctx.fillRect(x - 10, y - 8, 20, 24);
-  // Patchwork stitches
-  ctx.strokeStyle = '#ffd94a'; ctx.lineWidth = 1; ctx.setLineDash([2, 2]);
-  ctx.strokeRect(x - 10, y - 8, 20, 24);
-  ctx.beginPath(); ctx.moveTo(x - 10, y); ctx.lineTo(x + 10, y); ctx.stroke();
-  ctx.setLineDash([]);
-  // Long arms
-  const armSwing = Math.sin(performance.now() / 120) * 2;
-  ctx.strokeStyle = '#3a2a3a'; ctx.lineWidth = 4;
-  ctx.beginPath(); ctx.moveTo(x - 10, y - 4); ctx.lineTo(x - 18, y + 12 + armSwing); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(x + 10, y - 4); ctx.lineTo(x + 18, y + 12 - armSwing); ctx.stroke();
-  // Head
-  ctx.fillStyle = '#2a1a2a';
-  ctx.beginPath(); ctx.arc(x, y - 14, 9, 0, Math.PI*2); ctx.fill();
-  // Yellow button eyes
-  ctx.shadowColor = '#ffd94a'; ctx.shadowBlur = 8;
-  ctx.fillStyle = '#ffd94a';
-  ctx.beginPath(); ctx.arc(x - 3, y - 15, 2, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(x + 3, y - 15, 2, 0, Math.PI*2); ctx.fill();
-  ctx.shadowBlur = 0;
-  // Big painted smile
-  ctx.strokeStyle = '#ff3a4a'; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.arc(x, y - 12, 4, 0, Math.PI); ctx.stroke();
+  if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
+    window.HorridorsSprites.drawCharacter(ctx, 'grinpatch', monster.x + monster.w/2, monster.y + monster.h + 8, 1, 72);
+    return;
+  }
 }
 
 function drawHollow() {
-  const x = hollow.x + hollow.w/2;
-  const y = hollow.y + hollow.h/2;
-  // Hollow: thin, white, eye-only
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx.beginPath(); ctx.ellipse(x, y + 14, 10, 4, 0, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#dadada';
-  ctx.fillRect(x - 8, y - 6, 16, 22);
-  // Long thin head
-  ctx.fillStyle = '#eaeaea';
-  ctx.beginPath(); ctx.ellipse(x, y - 14, 6, 10, 0, 0, Math.PI*2); ctx.fill();
-  // Black eyes
-  ctx.fillStyle = '#1a1a22';
-  ctx.fillRect(x - 4, y - 16, 2, 6);
-  ctx.fillRect(x + 2, y - 16, 2, 6);
-  // No mouth
+  if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
+    window.HorridorsSprites.drawCharacter(ctx, 'hollow', hollow.x + hollow.w/2, hollow.y + hollow.h + 8, 1, 60);
+    return;
+  }
 }
 
 // ---------- Lighting ----------

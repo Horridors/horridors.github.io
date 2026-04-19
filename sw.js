@@ -1,6 +1,6 @@
 // Horridors — Service Worker (offline cache)
 // Cache-first strategy for static assets. Bump CACHE_VERSION on any meaningful change.
-const CACHE_VERSION = 'horridors-v20-difficulty-tiers';
+const CACHE_VERSION = 'horridors-v22-characters';
 const ASSETS = [
   './',
   './index.html',
@@ -29,6 +29,18 @@ const ASSETS = [
   './level7.js',
   './level8.js',
   './credits.js',
+  './characters/chester.png',
+  './characters/mum.png',
+  './characters/thistle.png',
+  './characters/grinpatch.png',
+  './characters/hollow.png',
+  './characters/drip.png',
+  './characters/inkybin.png',
+  './characters/expreshon.png',
+  './characters/exlena.png',
+  './characters/sockyshok.png',
+  './characters/blacky.png',
+  './characters/cast-poster.png',
 ];
 
 self.addEventListener('install', (event) => {

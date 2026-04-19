@@ -321,162 +321,20 @@
   // Before freeing: she lives in her cell and signals.
   // Visual position inside cell (bobbing slightly)
   function drawThistleInCell() {
-    if (state.thistleFreed) return;
-    const tc = THISTLE;
-    const cx = (tc.x1 + tc.x2) / 2;
-    const cy = tc.y2 - 48;
-    const bob = Math.sin(performance.now() / 300) * 2;
-    // Bright highlight halo around Thistle's cell so she's easy to spot
-    const tglow = 0.55 + 0.25 * Math.sin(performance.now() / 500);
-    ctx.save();
-    const hg = ctx.createRadialGradient(cx, cy - 30, 10, cx, cy - 30, 160);
-    hg.addColorStop(0, 'rgba(255, 216, 74, ' + (0.35 * tglow).toFixed(3) + ')');
-    hg.addColorStop(1, 'rgba(255, 216, 74, 0)');
-    ctx.fillStyle = hg;
-    ctx.fillRect(cx - 160, cy - 190, 320, 320);
-    ctx.restore();
-    // Big arrow above cell pointing down to Thistle
-    const arrY = 50 + Math.sin(performance.now() / 280) * 4;
-    ctx.save();
-    ctx.fillStyle = '#ffd84a';
-    ctx.strokeStyle = '#141414';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(cx, arrY + 28);
-    ctx.lineTo(cx - 14, arrY + 10);
-    ctx.lineTo(cx - 6, arrY + 10);
-    ctx.lineTo(cx - 6, arrY - 8);
-    ctx.lineTo(cx + 6, arrY - 8);
-    ctx.lineTo(cx + 6, arrY + 10);
-    ctx.lineTo(cx + 14, arrY + 10);
-    ctx.closePath();
-    ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#141414';
-    ctx.font = '800 11px system-ui, sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('THISTLE', cx, arrY - 1);
-    ctx.restore();
-    // Slightly bigger sprite so she reads from distance
-    drawThistleSprite(cx, cy + bob, 1.25);
-    // Show flashing signal lightbulb above her when pattern is playing
-    if (state.showingPattern && state.showPhase === 'on' && state.showIdx < state.pattern.length) {
-      const id = state.pattern[state.showIdx];
-      const color = SWITCHES[id].color;
-      // Big glowing orb above her
-      const gx = cx, gy = cy - 40;
-      ctx.save();
-      ctx.globalAlpha = 0.85;
-      const g = ctx.createRadialGradient(gx, gy, 2, gx, gy, 42);
-      g.addColorStop(0, color);
-      g.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = g;
-      ctx.fillRect(gx - 42, gy - 42, 84, 84);
-      ctx.restore();
-      ctx.fillStyle = color;
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(gx, gy, 14, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#fff';
-      ctx.font = '700 16px system-ui, sans-serif';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(SWITCHES[id].label, gx, gy);
+    if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
+      window.HorridorsSprites.drawCharacter(ctx, 'thistle', cell.cx, cell.cy + 30, 1, 56);
+      return;
     }
-  }
+}
 
   // Thistle sprite (child-drawing style): yellow body, sheriff hat, lightning ear,
   // big eyes, smile, chest star.  cx/cy = feet-center.
   function drawThistleSprite(cx, cy, scale = 1) {
-    const s = scale;
-    ctx.save();
-    // Body
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-    // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.beginPath(); ctx.ellipse(cx, cy + 2*s, 16*s, 3*s, 0, 0, Math.PI*2); ctx.fill();
-    // Legs (two stubs)
-    ctx.strokeStyle = '#141414'; ctx.lineWidth = 2*s;
-    ctx.fillStyle = '#fbd34a';
-    ctx.beginPath();
-    ctx.moveTo(cx - 8*s, cy - 8*s); ctx.lineTo(cx - 8*s, cy + 0*s);
-    ctx.moveTo(cx + 8*s, cy - 8*s); ctx.lineTo(cx + 8*s, cy + 0*s);
-    ctx.stroke();
-    // Body (yellow pear shape)
-    ctx.beginPath();
-    ctx.ellipse(cx, cy - 18*s, 14*s, 14*s, 0, 0, Math.PI*2);
-    ctx.fill(); ctx.stroke();
-    // Chest star
-    drawStar(cx, cy - 18*s, 6*s, '#fff08a', '#141414', 1.2*s);
-    // Arms (up, excited)
-    ctx.strokeStyle = '#141414'; ctx.lineWidth = 2*s;
-    ctx.beginPath();
-    ctx.moveTo(cx - 14*s, cy - 22*s); ctx.lineTo(cx - 20*s, cy - 30*s);
-    ctx.moveTo(cx + 14*s, cy - 22*s); ctx.lineTo(cx + 20*s, cy - 30*s);
-    ctx.stroke();
-    // Hands (small circles)
-    ctx.fillStyle = '#fbd34a';
-    ctx.beginPath(); ctx.arc(cx - 20*s, cy - 30*s, 2.5*s, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.arc(cx + 20*s, cy - 30*s, 2.5*s, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-    // Head (yellow round, slightly pear shaped)
-    ctx.fillStyle = '#fbd34a';
-    ctx.beginPath();
-    ctx.ellipse(cx, cy - 40*s, 14*s, 13*s, 0, 0, Math.PI*2);
-    ctx.fill(); ctx.stroke();
-    // Ears (tall pointy). Right ear (viewer's right, character's left) is the lightning one in the drawing.
-    // Per summary: lightning-bolt on LEFT (as labelled). Put it on viewer's left to match drawing.
-    ctx.fillStyle = '#fbd34a';
-    ctx.beginPath();
-    ctx.moveTo(cx - 10*s, cy - 50*s);
-    ctx.lineTo(cx - 16*s, cy - 66*s);
-    ctx.lineTo(cx - 6*s, cy - 52*s);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    // Right ear
-    ctx.beginPath();
-    ctx.moveTo(cx + 6*s, cy - 52*s);
-    ctx.lineTo(cx + 14*s, cy - 66*s);
-    ctx.lineTo(cx + 10*s, cy - 50*s);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    // Lightning bolt zap outline on LEFT ear
-    ctx.strokeStyle = '#141414'; ctx.lineWidth = 1.6*s;
-    ctx.fillStyle = '#ffd84a';
-    ctx.beginPath();
-    ctx.moveTo(cx - 20*s, cy - 48*s);
-    ctx.lineTo(cx - 14*s, cy - 58*s);
-    ctx.lineTo(cx - 18*s, cy - 58*s);
-    ctx.lineTo(cx - 13*s, cy - 68*s);
-    ctx.lineTo(cx - 16*s, cy - 58*s);
-    ctx.lineTo(cx - 12*s, cy - 58*s);
-    ctx.lineTo(cx - 18*s, cy - 48*s);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    // Sheriff hat (pink/lavender band, yellow crown, star)
-    ctx.fillStyle = '#f7c7d8';
-    ctx.fillRect(cx - 12*s, cy - 52*s, 24*s, 3*s);
-    ctx.strokeRect(cx - 12*s + 0.5, cy - 52*s + 0.5, 24*s - 1, 3*s - 1);
-    ctx.fillStyle = '#fbd34a';
-    ctx.beginPath();
-    ctx.moveTo(cx - 9*s, cy - 52*s);
-    ctx.lineTo(cx - 8*s, cy - 62*s);
-    ctx.lineTo(cx + 8*s, cy - 62*s);
-    ctx.lineTo(cx + 9*s, cy - 52*s);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    // Hat star
-    drawStar(cx, cy - 60*s, 3*s, '#ffd84a', '#141414', 1*s);
-    // Eyes — big, oval, lively
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.ellipse(cx - 5*s, cy - 40*s, 3.2*s, 4*s, 0, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(cx + 5*s, cy - 40*s, 3.2*s, 4*s, 0, 0, Math.PI*2); ctx.fill();
-    ctx.strokeStyle = '#141414'; ctx.lineWidth = 1.4*s;
-    ctx.beginPath(); ctx.ellipse(cx - 5*s, cy - 40*s, 3.2*s, 4*s, 0, 0, Math.PI*2); ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(cx + 5*s, cy - 40*s, 3.2*s, 4*s, 0, 0, Math.PI*2); ctx.stroke();
-    ctx.fillStyle = '#141414';
-    ctx.beginPath(); ctx.arc(cx - 5*s, cy - 40*s, 1.4*s, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(cx + 5*s, cy - 40*s, 1.4*s, 0, Math.PI*2); ctx.fill();
-    // Smile (wide, curved)
-    ctx.strokeStyle = '#141414'; ctx.lineWidth = 1.8*s;
-    ctx.beginPath();
-    ctx.arc(cx, cy - 34*s, 5*s, 0.15*Math.PI, 0.85*Math.PI);
-    ctx.stroke();
-    ctx.restore();
-  }
+    if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
+      window.HorridorsSprites.drawCharacter(ctx, 'thistle', cx, cy + 40*scale, 1, 56*scale);
+      return;
+    }
+}
   function drawStar(cx, cy, R, fill, stroke, lw) {
     ctx.fillStyle = fill;
     ctx.strokeStyle = stroke;
@@ -495,56 +353,11 @@
 
   // ---------- Chester sprite (same raincoat style as L3/L4) ----------
   function drawChester(cx, cy, scale = 1, facing = 1) {
-    const s = scale;
-    ctx.save();
-    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-    // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    ctx.beginPath(); ctx.ellipse(cx, cy + 2*s, 12*s, 3*s, 0, 0, Math.PI*2); ctx.fill();
-    // Legs
-    ctx.strokeStyle = '#141414'; ctx.lineWidth = 2*s;
-    ctx.fillStyle = '#3b2a6e';
-    ctx.fillRect(cx - 7*s, cy - 6*s, 5*s, 8*s);
-    ctx.fillRect(cx + 2*s, cy - 6*s, 5*s, 8*s);
-    ctx.strokeRect(cx - 7*s + 0.5, cy - 6*s + 0.5, 5*s - 1, 8*s - 1);
-    ctx.strokeRect(cx + 2*s + 0.5, cy - 6*s + 0.5, 5*s - 1, 8*s - 1);
-    // Coat body (yellow raincoat)
-    ctx.fillStyle = '#f6d854';
-    ctx.beginPath();
-    ctx.moveTo(cx - 10*s, cy - 6*s);
-    ctx.lineTo(cx - 11*s, cy - 22*s);
-    ctx.lineTo(cx + 11*s, cy - 22*s);
-    ctx.lineTo(cx + 10*s, cy - 6*s);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    // Coat button
-    ctx.fillStyle = '#c49a2a';
-    ctx.beginPath(); ctx.arc(cx, cy - 14*s, 1.5*s, 0, Math.PI*2); ctx.fill();
-    // Backpack strap
-    ctx.fillStyle = '#2a4036';
-    ctx.fillRect(cx - 11*s, cy - 20*s, 22*s, 2*s);
-    // Head (hood up)
-    ctx.fillStyle = '#f6d854';
-    ctx.beginPath();
-    ctx.arc(cx, cy - 26*s, 9*s, 0, Math.PI*2);
-    ctx.fill(); ctx.stroke();
-    // Face (peach skin showing through hood)
-    ctx.fillStyle = '#f5d2aa';
-    ctx.beginPath(); ctx.arc(cx, cy - 26*s, 6*s, 0, Math.PI*2); ctx.fill();
-    ctx.strokeStyle = '#141414'; ctx.lineWidth = 1*s;
-    // Eyes
-    ctx.fillStyle = '#141414';
-    ctx.beginPath(); ctx.arc(cx - 2*s + facing*0.5, cy - 26*s, 0.9*s, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(cx + 2*s + facing*0.5, cy - 26*s, 0.9*s, 0, Math.PI*2); ctx.fill();
-    // Mouth
-    ctx.strokeStyle = '#141414'; ctx.lineWidth = 1.2*s;
-    ctx.beginPath();
-    ctx.arc(cx, cy - 23*s, 1.4*s, 0.1*Math.PI, 0.9*Math.PI);
-    ctx.stroke();
-    // Torch pip (forward)
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(cx + facing*10*s, cy - 20*s, 1.8*s, 0, Math.PI*2); ctx.fill();
-    ctx.restore();
-  }
+    if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
+      window.HorridorsSprites.drawCharacter(ctx, 'chester', cx, cy + 30*scale, facing, 56*scale);
+      return;
+    }
+}
 
   // ---------- Switches ----------
   function drawSwitches() {

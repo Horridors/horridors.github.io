@@ -631,34 +631,11 @@
     }
   }
   function drawSocky() {
-    const s = state.socky;
-    const sprite = buildSockySprite(state.pluggedCount > 0);
-    const shake = s.shake > 0 ? (Math.random() - 0.5) * 6 : 0;
-    if (s.defeated) {
-      // Draw fallen / off
-      ctx.save();
-      ctx.translate(s.x + s.w/2, s.y + s.h/2 + s.bob);
-      ctx.rotate(Math.PI / 4);
-      ctx.globalAlpha = 0.7;
-      ctx.drawImage(sprite, -s.w/2, -s.h/2, s.w, s.h);
-      ctx.restore();
-      // X eyes overlay
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(s.x + 40, s.y + 40); ctx.lineTo(s.x + 54, s.y + 54); ctx.moveTo(s.x + 54, s.y + 40); ctx.lineTo(s.x + 40, s.y + 54); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(s.x + 66, s.y + 40); ctx.lineTo(s.x + 80, s.y + 54); ctx.moveTo(s.x + 80, s.y + 40); ctx.lineTo(s.x + 66, s.y + 54); ctx.stroke();
+    if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
+      window.HorridorsSprites.drawCharacter(ctx, 'sockyshok', socky.x + socky.w/2, socky.y + socky.h + 6, 1, 72);
       return;
     }
-    // Aggressive glow aura
-    if (state.pluggedCount > 0) {
-      const cx = s.x + s.w/2, cy = s.y + s.h/2 + s.bob;
-      const g = ctx.createRadialGradient(cx, cy, 10, cx, cy, 90);
-      g.addColorStop(0, 'rgba(255, 60, 90, 0.45)');
-      g.addColorStop(1, 'rgba(255, 60, 90, 0)');
-      ctx.fillStyle = g;
-      ctx.fillRect(cx - 90, cy - 90, 180, 180);
-    }
-    ctx.drawImage(sprite, s.x + shake, s.y + s.bob);
-  }
+}
   function drawZaps() {
     for (const z of zaps) {
       ctx.save();
@@ -688,26 +665,17 @@
     }
   }
   function drawPlayerSprite() {
-    const sprite = buildPlayerSprite(player.facing === 1 ? 1 : -1);
-    if (player.facing === -1) {
-      ctx.save();
-      ctx.translate(player.x + player.w/2, 0);
-      ctx.scale(-1, 1);
-      ctx.drawImage(sprite, -player.w/2 - 5, player.y - 20);
-      ctx.restore();
-    } else {
-      ctx.drawImage(sprite, player.x - 5, player.y - 20);
+    if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
+      window.HorridorsSprites.drawCharacter(ctx, 'chester', player.x + player.w/2, player.y + player.h + 8, (player.facing !== undefined ? (Math.cos(player.facing) >= 0 ? 1 : -1) : 1), 56);
+      return;
     }
-    // hit blink
-    if (state.hitCd > 0.7) {
-      ctx.fillStyle = 'rgba(255,80,80,0.4)';
-      ctx.fillRect(player.x - 5, player.y - 20, 32, 48);
-    }
-  }
+}
   function drawThistleFollower() {
-    const sprite = buildThistleSprite();
-    ctx.drawImage(sprite, thistle.x - 10, thistle.y - 42);
-  }
+    if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
+      window.HorridorsSprites.drawCharacter(ctx, 'thistle', thistle.x, thistle.y + 8, 1, 56);
+      return;
+    }
+}
   function drawHUD() {
     ctx.save();
     ctx.resetTransform && ctx.resetTransform();

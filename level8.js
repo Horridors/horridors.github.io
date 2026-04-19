@@ -403,42 +403,16 @@
   }
 
   function buildMotherSprite() {
-    return spriteCache('l8_mother', 50, 130, (g) => {
-      g.lineJoin = 'round'; g.lineCap = 'round';
+    return spriteCache('l8_mother_v22', 50, 130, (g) => {
+      const img = window.HorridorsSprites && window.HorridorsSprites.getCharacterImage('mum');
       g.fillStyle = 'rgba(0,0,0,0.24)';
       g.beginPath(); g.ellipse(25, 126, 18, 4, 0, 0, Math.PI*2); g.fill();
-      // Dress
-      g.fillStyle = '#8a6fb8'; g.strokeStyle = '#1a1024'; g.lineWidth = 2;
-      g.beginPath();
-      g.moveTo(10, 60); g.lineTo(4, 122); g.lineTo(46, 122); g.lineTo(40, 60);
-      g.closePath(); g.fill(); g.stroke();
-      // Apron
-      g.fillStyle = '#f2e6d0';
-      g.fillRect(16, 64, 18, 42);
-      g.strokeRect(16.5, 64.5, 17, 41);
-      // Head
-      g.fillStyle = '#f5d2aa';
-      g.beginPath(); g.arc(25, 36, 16, 0, Math.PI*2); g.fill(); g.stroke();
-      // Hair (brown bob)
-      g.fillStyle = '#6a4a2a';
-      g.beginPath();
-      g.moveTo(9, 34); g.quadraticCurveTo(12, 16, 25, 14);
-      g.quadraticCurveTo(38, 16, 41, 34);
-      g.lineTo(38, 40); g.quadraticCurveTo(36, 30, 25, 28);
-      g.quadraticCurveTo(14, 30, 12, 40);
-      g.closePath(); g.fill(); g.stroke();
-      // Eyes (closed / tired then happy)
-      g.strokeStyle = '#1a1024'; g.lineWidth = 1.6;
-      g.beginPath(); g.arc(19, 36, 3, 0.15*Math.PI, 0.85*Math.PI); g.stroke();
-      g.beginPath(); g.arc(31, 36, 3, 0.15*Math.PI, 0.85*Math.PI); g.stroke();
-      // Smile
-      g.beginPath(); g.arc(25, 42, 4, 0.2*Math.PI, 0.8*Math.PI); g.stroke();
-      // Neck
-      g.fillStyle = '#f5d2aa'; g.fillRect(21, 48, 8, 14);
-      // Arms
-      g.fillStyle = '#8a6fb8';
-      g.fillRect(0, 62, 10, 28); g.strokeRect(0.5, 62.5, 9, 27);
-      g.fillRect(40, 62, 10, 28); g.strokeRect(40.5, 62.5, 9, 27);
+      if (img && img.complete && img.naturalWidth > 0) {
+        const aspect = img.naturalWidth / img.naturalHeight;
+        const h = 118;
+        const w = h * aspect;
+        g.drawImage(img, (50 - w) / 2, 6, w, h);
+      }
     });
   }
 
@@ -922,24 +896,11 @@
   }
 
   function drawMother() {
-    if (!mother.freed && state.cageBroken < 3) {
-      // Inside cage
-      const mx = cage.x + cage.w/2 - 25;
-      const my = cage.y + 36;
-      const img = buildMotherSprite();
-      ctx.drawImage(img, mx, my);
-    } else {
-      // Free — walk out
-      const img = buildMotherSprite();
-      ctx.drawImage(img, mother.x, mother.y);
-      // Heart
-      ctx.fillStyle = '#ff6f8a';
-      const ht = performance.now() / 250;
-      ctx.font = `700 ${18 + Math.sin(ht) * 2}px system-ui`;
-      ctx.textAlign = 'center';
-      ctx.fillText('♥', mother.x + mother.w/2, mother.y - 10);
+    if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
+      window.HorridorsSprites.drawCharacter(ctx, 'mum', mother.x + mother.w/2, mother.y + mother.h + 8, 1, 60);
+      return;
     }
-  }
+}
 
   function drawEnemy(e) {
     const bob = Math.sin(e.bob * 2) * 3;
@@ -981,40 +942,25 @@
   }
 
   function drawPlayerSprite() {
-    const img = buildPlayerSprite(player.facing);
-    ctx.save();
-    if (state.hitCd > 0 && Math.floor(state.hitCd * 10) % 2 === 0) ctx.globalAlpha = 0.35;
-    ctx.drawImage(img, player.x - 5, player.y - 20);
-    ctx.restore();
-    // Punch visual
-    if (player.punchT > 0) {
-      const px = player.x + player.w/2 + player.facing * 22;
-      const py = player.y + player.h/2 - 6;
-      ctx.fillStyle = '#ffd84a';
-      ctx.strokeStyle = '#1a1024'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(px, py, 8 + player.punchT * 14, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#1a1024';
-      ctx.font = '900 10px system-ui'; ctx.textAlign = 'center';
-      ctx.fillText('POW', px, py + 3);
+    if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
+      window.HorridorsSprites.drawCharacter(ctx, 'chester', player.x + player.w/2, player.y + player.h + 8, (player.facing !== undefined ? (Math.cos(player.facing) >= 0 ? 1 : -1) : 1), 56);
+      return;
     }
-  }
+}
 
   function drawThistleFollower() {
-    const img = buildThistleSprite();
-    ctx.save();
-    if (thistle.hurtT > 0 && Math.floor(thistle.hurtT * 20) % 2 === 0) ctx.globalAlpha = 0.5;
-    ctx.drawImage(img, thistle.x - 10, thistle.y - 40);
-    ctx.restore();
-  }
+    if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
+      window.HorridorsSprites.drawCharacter(ctx, 'thistle', thistle.x, thistle.y + 8, 1, 56);
+      return;
+    }
+}
 
   function drawInkyBin() {
-    const img = buildInkyBinSprite();
-    const bob = Math.sin(inkybin.bob) * 2;
-    ctx.save();
-    if (inkybin.hurtT > 0 && Math.floor(inkybin.hurtT * 20) % 2 === 0) ctx.globalAlpha = 0.5;
-    ctx.drawImage(img, inkybin.x - 10, inkybin.y - 30 + bob);
-    ctx.restore();
-  }
+    if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
+      window.HorridorsSprites.drawCharacter(ctx, 'inkybin', inkyBin.x + inkyBin.w/2, inkyBin.y + inkyBin.h + 6, 1, 52);
+      return;
+    }
+}
 
   function drawProjectiles() {
     for (const p of projectiles) {

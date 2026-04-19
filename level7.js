@@ -160,94 +160,31 @@
   }
 
   function buildBlackyPantsSprite(mossLevel) {
-    // mossLevel 0..4: 0=clean, 4=full moss. Based on drawing (triangular head, big eyes, fangs, black pants)
-    return spriteCache('blacky_' + mossLevel, 170, 200, (g) => {
-      g.lineJoin = 'round'; g.lineCap = 'round';
+    return spriteCache('blacky_v22_' + mossLevel, 170, 200, (g) => {
+      const img = window.HorridorsSprites && window.HorridorsSprites.getCharacterImage('blacky');
       // Shadow
       g.fillStyle = 'rgba(0,0,0,0.3)';
       g.beginPath(); g.ellipse(85, 194, 48, 5, 0, 0, Math.PI*2); g.fill();
-      // Legs / pants — messy scribble (two scribbled blobs)
-      g.strokeStyle = '#0a0612'; g.lineWidth = 3; g.fillStyle = '#15101c';
-      g.beginPath();
-      g.moveTo(48, 120); g.lineTo(42, 184); g.lineTo(70, 184); g.lineTo(76, 120); g.closePath(); g.fill(); g.stroke();
-      g.beginPath();
-      g.moveTo(92, 120); g.lineTo(96, 184); g.lineTo(126, 184); g.lineTo(120, 120); g.closePath(); g.fill(); g.stroke();
-      // Pant scribbles
-      g.strokeStyle = '#28202e'; g.lineWidth = 2;
-      for (let i = 0; i < 10; i++) {
-        const lx = 48 + (i % 2) * 44 + Math.random() * 4;
-        g.beginPath(); g.moveTo(lx, 125 + i * 5); g.lineTo(lx + 28, 130 + i * 5); g.stroke();
-      }
-      // Body — a wide trapezoid
-      g.fillStyle = mossLevel >= 2 ? '#4a5f3b' : '#3a3048';
-      g.beginPath();
-      g.moveTo(36, 70); g.lineTo(132, 70); g.lineTo(138, 122); g.lineTo(30, 122); g.closePath();
-      g.fill(); g.strokeStyle = '#0a0612'; g.lineWidth = 3; g.stroke();
-      // Arms (thin stick arms)
-      g.strokeStyle = '#0a0612'; g.lineWidth = 4;
-      g.beginPath(); g.moveTo(36, 80); g.lineTo(8, 96); g.lineTo(14, 116); g.stroke();
-      g.beginPath(); g.moveTo(132, 80); g.lineTo(158, 96); g.lineTo(152, 116); g.stroke();
-      // Head — triangular / pointy top (matches drawing)
-      g.fillStyle = mossLevel >= 2 ? '#4a5f3b' : '#2a1830';
-      g.strokeStyle = '#0a0612'; g.lineWidth = 3;
-      g.beginPath();
-      g.moveTo(84, 6);    // pointy top
-      g.lineTo(32, 66);    // left bottom
-      g.lineTo(138, 66);   // right bottom
-      g.closePath(); g.fill(); g.stroke();
-      // Eyes — two big round white eyes
-      g.fillStyle = '#fff';
-      g.beginPath(); g.arc(64, 46, 12, 0, Math.PI*2); g.fill();
-      g.beginPath(); g.arc(102, 46, 12, 0, Math.PI*2); g.fill();
-      g.strokeStyle = '#0a0612'; g.lineWidth = 2;
-      g.beginPath(); g.arc(64, 46, 12, 0, Math.PI*2); g.stroke();
-      g.beginPath(); g.arc(102, 46, 12, 0, Math.PI*2); g.stroke();
-      g.fillStyle = '#0a0612';
-      g.beginPath(); g.arc(64, 48, 4.5, 0, Math.PI*2); g.fill();
-      g.beginPath(); g.arc(102, 48, 4.5, 0, Math.PI*2); g.fill();
-      // Mouth — wide grin with two pointy fangs (drawing has tiny fangs)
-      g.strokeStyle = '#0a0612'; g.lineWidth = 2.5;
-      g.beginPath();
-      g.moveTo(54, 60); g.quadraticCurveTo(84, 72, 114, 60);
-      g.stroke();
-      g.fillStyle = '#fff';
-      g.beginPath(); g.moveTo(70, 61); g.lineTo(74, 70); g.lineTo(78, 61); g.closePath(); g.fill(); g.stroke();
-      g.beginPath(); g.moveTo(90, 61); g.lineTo(94, 70); g.lineTo(98, 61); g.closePath(); g.fill(); g.stroke();
-      // Moss overlay by level
-      if (mossLevel >= 1) {
-        g.fillStyle = '#7db050';
-        for (let i = 0; i < 14 * mossLevel; i++) {
-          const px = 30 + Math.random() * 110, py = 20 + Math.random() * 140;
-          g.beginPath(); g.arc(px, py, 2 + Math.random() * 3, 0, Math.PI*2); g.fill();
+      if (img && img.complete && img.naturalWidth > 0) {
+        const aspect = img.naturalWidth / img.naturalHeight;
+        const h = 180;
+        const w = h * aspect;
+        g.drawImage(img, (170 - w) / 2, 10, w, h);
+        // Moss overlay: tint green with alpha proportional to mossLevel
+        if (mossLevel > 0) {
+          g.save();
+          g.globalCompositeOperation = 'source-atop';
+          g.fillStyle = `rgba(74, 130, 58, ${0.18 * mossLevel})`;
+          g.fillRect(0, 0, 170, 200);
+          // Leafy specks
+          g.fillStyle = '#4a823a';
+          for (let i = 0; i < mossLevel * 8; i++) {
+            const lx = 40 + Math.random() * 90;
+            const ly = 30 + Math.random() * 140;
+            g.beginPath(); g.ellipse(lx, ly, 4, 2, Math.random() * Math.PI, 0, Math.PI * 2); g.fill();
+          }
+          g.restore();
         }
-      }
-      if (mossLevel >= 3) {
-        // Heavy moss clumps
-        g.fillStyle = '#5a8a3a';
-        for (let i = 0; i < 20; i++) {
-          const px = 30 + Math.random() * 110, py = 20 + Math.random() * 140;
-          g.beginPath(); g.arc(px, py, 4 + Math.random() * 5, 0, Math.PI*2); g.fill();
-        }
-        // Droopy eyes
-        g.fillStyle = '#0a0612';
-        g.fillRect(56, 48, 16, 3);
-        g.fillRect(94, 48, 16, 3);
-      }
-      if (mossLevel >= 4) {
-        // Fully mossy, sleeping — draw closed eyes
-        g.fillStyle = '#6a9a4a';
-        g.fillRect(20, 10, 130, 140);
-        g.strokeStyle = '#1a2a0c'; g.lineWidth = 2;
-        g.strokeRect(21, 11, 128, 138);
-        // Sleepy Z
-        g.fillStyle = '#fff';
-        g.font = '900 26px system-ui';
-        g.textAlign = 'center';
-        g.fillText('zZ', 84, 60);
-        // Closed eye lines
-        g.strokeStyle = '#0a0612'; g.lineWidth = 2;
-        g.beginPath(); g.arc(64, 46, 10, 0.15*Math.PI, 0.85*Math.PI); g.stroke();
-        g.beginPath(); g.arc(102, 46, 10, 0.15*Math.PI, 0.85*Math.PI); g.stroke();
       }
     });
   }
@@ -665,25 +602,17 @@
     }
   }
   function drawPlayerSprite() {
-    const sprite = buildPlayerSprite(player.facing === 1 ? 1 : -1);
-    if (player.facing === -1) {
-      ctx.save();
-      ctx.translate(player.x + player.w/2, 0);
-      ctx.scale(-1, 1);
-      ctx.drawImage(sprite, -player.w/2 - 5, player.y - 20);
-      ctx.restore();
-    } else {
-      ctx.drawImage(sprite, player.x - 5, player.y - 20);
+    if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
+      window.HorridorsSprites.drawCharacter(ctx, 'chester', player.x + player.w/2, player.y + player.h + 8, (player.facing !== undefined ? (Math.cos(player.facing) >= 0 ? 1 : -1) : 1), 56);
+      return;
     }
-    if (state.hitCd > 0.7) {
-      ctx.fillStyle = 'rgba(255,80,80,0.4)';
-      ctx.fillRect(player.x - 5, player.y - 20, 32, 48);
-    }
-  }
+}
   function drawThistleFollower() {
-    const sprite = buildThistleSprite();
-    ctx.drawImage(sprite, thistle.x - 10, thistle.y - 42);
-  }
+    if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
+      window.HorridorsSprites.drawCharacter(ctx, 'thistle', thistle.x, thistle.y + 8, 1, 56);
+      return;
+    }
+}
   function drawHUD() {
     ctx.save();
     ctx.resetTransform && ctx.resetTransform();

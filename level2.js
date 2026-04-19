@@ -1160,161 +1160,22 @@
   }
 
   function drawSquidley() {
-    if (!squidley.active) return;
-    const t = performance.now() / 400;
-    drawSquidDrawing(squidley.x - camera.x, squidley.y - camera.y, 14, t, 1);
-    // Glow halo (teal for Inky Bin)
-    ctx.save();
-    const g = ctx.createRadialGradient(squidley.x - camera.x, squidley.y - camera.y, 4, squidley.x - camera.x, squidley.y - camera.y, 50);
-    g.addColorStop(0, 'rgba(74, 200, 160, 0.38)');
-    g.addColorStop(1, 'rgba(74, 200, 160, 0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(squidley.x - camera.x - 50, squidley.y - camera.y - 50, 100, 100);
-    ctx.restore();
-  }
+    if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
+      window.HorridorsSprites.drawCharacter(ctx, 'inkybin', squidley.x + squidley.w/2, squidley.y + squidley.h + 6, 1, 52);
+      return;
+    }
+}
 
   // ---------- Socky Shok (friendly teal helper NPC) ----------
   // V4: TEAL (not green), TALLER capsule body, NO EAR. Single lightning bolt on top,
   // stubby T-arms, tiny feet (NO socks), big white oval eyes with black pupils.
   function drawSocky() {
-    if (!state.socky.active) return;
-    const sx = state.socky.x - camera.x;
-    const sy = state.socky.y - camera.y + Math.sin(state.socky.bob) * 1.5;
-    // Teal palette
-    const TEAL = '#2fc6b8';
-    const TEAL_DARK = '#1c8c82';
-    ctx.save();
-    // Shadow (further down since body is taller)
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.beginPath(); ctx.ellipse(sx, sy + 34, 13, 3.5, 0, 0, Math.PI*2); ctx.fill();
-
-    // --- Tiny feet (no socks, no shoes — just rounded teal nubs) ---
-    ctx.fillStyle = TEAL_DARK;
-    ctx.beginPath(); ctx.ellipse(sx - 5, sy + 32, 3.5, 2, 0, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(sx + 5, sy + 32, 3.5, 2, 0, 0, Math.PI*2); ctx.fill();
-    ctx.strokeStyle = '#1a1a22'; ctx.lineWidth = 0.9;
-    ctx.beginPath(); ctx.ellipse(sx - 5, sy + 32, 3.5, 2, 0, 0, Math.PI*2); ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(sx + 5, sy + 32, 3.5, 2, 0, 0, Math.PI*2); ctx.stroke();
-
-    // --- Stubby rounded legs ---
-    ctx.fillStyle = TEAL;
-    ctx.beginPath(); ctx.ellipse(sx - 5, sy + 28, 3, 4, 0, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(sx + 5, sy + 28, 3, 4, 0, 0, Math.PI*2); ctx.fill();
-
-    // --- Body (TALL rounded capsule, taller than wide) ---
-    ctx.fillStyle = TEAL;
-    // Rounded rectangle via path
-    const bx = sx - 9,  by = sy - 2,  bw = 18, bh = 28, br = 8;
-    ctx.beginPath();
-    ctx.moveTo(bx + br, by);
-    ctx.lineTo(bx + bw - br, by);
-    ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + br);
-    ctx.lineTo(bx + bw, by + bh - br);
-    ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - br, by + bh);
-    ctx.lineTo(bx + br, by + bh);
-    ctx.quadraticCurveTo(bx, by + bh, bx, by + bh - br);
-    ctx.lineTo(bx, by + br);
-    ctx.quadraticCurveTo(bx, by, bx + br, by);
-    ctx.closePath();
-    ctx.fill();
-    // Marker-style shading streaks
-    ctx.save();
-    ctx.globalAlpha = 0.25;
-    ctx.fillStyle = TEAL_DARK;
-    ctx.beginPath(); ctx.ellipse(sx - 3, sy + 14, 4, 8, -0.3, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(sx + 4, sy + 8, 3, 6, 0.4, 0, Math.PI*2); ctx.fill();
-    ctx.restore();
-
-    // --- Stubby T-arms sticking straight out sideways (at chest level) ---
-    const armBob = Math.sin(performance.now()/500) * 1.0;
-    ctx.fillStyle = TEAL;
-    // Left arm
-    ctx.beginPath();
-    ctx.ellipse(sx - 13, sy + 8 + armBob, 5, 2.5, 0, 0, Math.PI*2);
-    ctx.fill();
-    // Right arm
-    ctx.beginPath();
-    ctx.ellipse(sx + 13, sy + 8 - armBob, 5, 2.5, 0, 0, Math.PI*2);
-    ctx.fill();
-    // Arm outlines
-    ctx.strokeStyle = '#1a1a22'; ctx.lineWidth = 0.9;
-    ctx.beginPath(); ctx.ellipse(sx - 13, sy + 8 + armBob, 5, 2.5, 0, 0, Math.PI*2); ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(sx + 13, sy + 8 - armBob, 5, 2.5, 0, 0, Math.PI*2); ctx.stroke();
-
-    // --- SINGLE lightning bolt sticking straight up from middle of top ---
-    const lightT = performance.now() / 150;
-    const lightFlicker = 0.85 + Math.sin(lightT) * 0.15;
-    ctx.save();
-    ctx.globalAlpha = lightFlicker;
-    ctx.fillStyle = '#1a1a22';
-    ctx.strokeStyle = '#1a1a22'; ctx.lineWidth = 0.8;
-    ctx.beginPath();
-    ctx.moveTo(sx - 1,  sy - 10);
-    ctx.lineTo(sx + 3,  sy - 16);
-    ctx.lineTo(sx + 0.5,sy - 14);
-    ctx.lineTo(sx + 3,  sy - 12);
-    ctx.lineTo(sx - 1,  sy - 7);
-    ctx.lineTo(sx + 1,  sy - 9);
-    ctx.lineTo(sx - 2,  sy - 8);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    ctx.restore();
-
-    // --- Eyes: big white ovals with black pupils ---
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath(); ctx.ellipse(sx - 4, sy + 3, 3.2, 3.8, 0, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(sx + 4, sy + 3, 3.2, 3.8, 0, 0, Math.PI*2); ctx.fill();
-    // Eye outlines
-    ctx.strokeStyle = '#1a1a22'; ctx.lineWidth = 0.9;
-    ctx.beginPath(); ctx.ellipse(sx - 4, sy + 3, 3.2, 3.8, 0, 0, Math.PI*2); ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(sx + 4, sy + 3, 3.2, 3.8, 0, 0, Math.PI*2); ctx.stroke();
-    // Pupils (black)
-    ctx.fillStyle = '#1a1a22';
-    ctx.beginPath(); ctx.arc(sx - 4, sy + 4, 1.5, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(sx + 4, sy + 4, 1.5, 0, Math.PI*2); ctx.fill();
-
-    // --- Mouth: small rectangle with hatched teeth ---
-    ctx.fillStyle = '#1a1a22';
-    ctx.fillRect(sx - 3, sy + 8, 6, 2.5);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(sx - 2.4, sy + 8.6, 1.1, 1.3);
-    ctx.fillRect(sx - 0.8, sy + 8.6, 1.1, 1.3);
-    ctx.fillRect(sx + 0.8, sy + 8.6, 1.1, 1.3);
-
-    // Body outline (rounded rectangle)
-    ctx.strokeStyle = '#1a1a22'; ctx.lineWidth = 1.0;
-    ctx.beginPath();
-    ctx.moveTo(bx + br, by);
-    ctx.lineTo(bx + bw - br, by);
-    ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + br);
-    ctx.lineTo(bx + bw, by + bh - br);
-    ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - br, by + bh);
-    ctx.lineTo(bx + br, by + bh);
-    ctx.quadraticCurveTo(bx, by + bh, bx, by + bh - br);
-    ctx.lineTo(bx, by + br);
-    ctx.quadraticCurveTo(bx, by, bx + br, by);
-    ctx.closePath();
-    ctx.stroke();
-    ctx.restore();
-
-    // Soft teal glow halo
-    ctx.save();
-    const g = ctx.createRadialGradient(sx, sy + 8, 4, sx, sy + 8, 56);
-    g.addColorStop(0, 'rgba(80, 220, 210, 0.28)');
-    g.addColorStop(1, 'rgba(80, 220, 210, 0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(sx - 56, sy - 40, 112, 112);
-    ctx.restore();
-
-    // Name tag once met
-    if (state.socky.met) {
-      ctx.save();
-      ctx.font = '700 10px Inter, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = 'rgba(80, 220, 210, 0.95)';
-      ctx.fillText('Socky Shok', sx, sy - 20);
-      ctx.restore();
+    const socky = state.socky;
+    if (!socky || !socky.active) return;
+    if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
+      const bobY = Math.sin(socky.bob || 0) * 4;
+      window.HorridorsSprites.drawCharacter(ctx, 'sockyshok', socky.x, socky.y + bobY, 1, 56);
+      return;
     }
   }
 
@@ -1356,95 +1217,18 @@
   }
 
   function drawPlayer() {
-    const px = player.x - camera.x, py = player.y - camera.y;
-    const pw = player.w, ph = player.h;
-    const cx = px + pw/2, cy = py + ph/2;
-    // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.4)';
-    ctx.beginPath(); ctx.ellipse(cx, py + ph + 2, pw * 0.55, 4, 0, 0, Math.PI*2); ctx.fill();
-    // Yellow raincoat torso
-    ctx.fillStyle = '#ffd94a';
-    ctx.fillRect(px + 1, py + 8, pw - 2, ph - 8);
-    // Hood (rounded top)
-    ctx.beginPath();
-    ctx.arc(cx, py + 7, pw/2 + 1, Math.PI, 0);
-    ctx.closePath();
-    ctx.fill();
-    // Hood interior shadow
-    ctx.fillStyle = '#1a1a22';
-    ctx.beginPath();
-    ctx.arc(cx, py + 8, pw/2 - 3, Math.PI, 0);
-    ctx.closePath();
-    ctx.fill();
-    // Face peek (skin)
-    ctx.fillStyle = '#f5d0a8';
-    ctx.fillRect(cx - 4, py + 5, 8, 5);
-    // Eyes
-    ctx.fillStyle = '#1a1a22';
-    ctx.fillRect(cx - 3, py + 7, 1.5, 1.5);
-    ctx.fillRect(cx + 1.5, py + 7, 1.5, 1.5);
-    // Coat button line
-    ctx.fillStyle = '#c7a010';
-    ctx.fillRect(cx - 0.5, py + 10, 1, ph - 12);
-    // Backpack strap dot
-    ctx.fillStyle = '#b84a2a';
-    ctx.fillRect(px + 2, py + 12, 2, 2);
-    // Outline
-    ctx.strokeStyle = '#1a1a22'; ctx.lineWidth = 1;
-    ctx.strokeRect(px + 1.5, py + 8.5, pw - 3, ph - 9);
-    // Water splash when moving in hub
-    if ((player.vx !== 0 || player.vy !== 0) && isInHub(player.x + player.w/2, player.y + player.h/2)) {
-      const t = performance.now() / 150;
-      ctx.fillStyle = 'rgba(180,240,255,0.6)';
-      ctx.beginPath();
-      ctx.arc(px - 2 + Math.sin(t)*2, py + player.h + 3, 2, 0, Math.PI*2);
-      ctx.arc(px + player.w + 2 + Math.cos(t)*2, py + player.h + 3, 2, 0, Math.PI*2);
-      ctx.fill();
+    if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
+      window.HorridorsSprites.drawCharacter(ctx, 'chester', player.x + player.w/2, player.y + player.h + 8, (player.facing !== undefined ? (Math.cos(player.facing) >= 0 ? 1 : -1) : 1), 56);
+      return;
     }
-  }
+}
 
   function drawDrip() {
-    if (!drip.active) return;
-    const dx = drip.x - camera.x, dy = drip.y - camera.y;
-    const t = performance.now() / 200;
-    // When fleeing, fade out and add a small panic shake
-    if (drip.fleeing) {
-      ctx.save();
-      ctx.globalAlpha = 0.55;
-      ctx.translate((Math.random()-0.5)*2, (Math.random()-0.5)*2);
+    if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
+      window.HorridorsSprites.drawCharacter(ctx, 'drip', drip.x + drip.w/2, drip.y + drip.h + 6, 1, 54);
+      return;
     }
-    // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.4)';
-    ctx.beginPath(); ctx.ellipse(dx, dy + 28, 18, 5, 0, 0, Math.PI*2); ctx.fill();
-    // Body (tall wet column)
-    ctx.save();
-    const grad = ctx.createLinearGradient(dx, dy - 30, dx, dy + 25);
-    grad.addColorStop(0, '#1a3a4a');
-    grad.addColorStop(0.6, '#0e2030');
-    grad.addColorStop(1, '#061018');
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.moveTo(dx - 16, dy + 28);
-    ctx.bezierCurveTo(dx - 22, dy - 10, dx - 14, dy - 32 + Math.sin(t)*2, dx, dy - 34);
-    ctx.bezierCurveTo(dx + 14, dy - 32 + Math.cos(t)*2, dx + 22, dy - 10, dx + 16, dy + 28);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = '#2a5564'; ctx.lineWidth = 1.5;
-    ctx.stroke();
-    // Drips falling
-    for (let i = 0; i < 3; i++) {
-      const dyd = (performance.now() / 5 + i * 50) % 40;
-      ctx.fillStyle = 'rgba(140,220,255,0.8)';
-      ctx.beginPath();
-      ctx.arc(dx - 10 + i * 10, dy + dyd, 2, 0, Math.PI*2);
-      ctx.fill();
-    }
-    // Two pale eyes
-    ctx.fillStyle = '#d9f0ff';
-    ctx.beginPath(); ctx.arc(dx - 5, dy - 20, 2.5, 0, Math.PI*2); ctx.arc(dx + 5, dy - 20, 2.5, 0, Math.PI*2); ctx.fill();
-    ctx.restore();
-    if (drip.fleeing) { ctx.restore(); }
-  }
+}
 
   function drawItems() {
     for (const it of items) {
