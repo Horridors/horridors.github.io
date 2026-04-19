@@ -1,6 +1,6 @@
 // Horridors — Service Worker (offline cache)
 // Cache-first strategy for static assets. Bump CACHE_VERSION on any meaningful change.
-const CACHE_VERSION = 'horridors-v23y-og-social-analytics';
+const CACHE_VERSION = 'horridors-v23z-brand-logo';
 const ASSETS = [
   './',
   './index.html',
@@ -42,6 +42,8 @@ const ASSETS = [
   './characters/blacky.png',
   './characters/cast-poster.png',
   './og-image.png',
+  './logo.svg',
+  './logo.png',
 ];
 
 self.addEventListener('install', (event) => {

@@ -345,6 +345,28 @@ body {
   animation: titleFlicker 4s infinite;
 }
 
+/* When the title-brand contains an <img> (brand logo), render the image
+   at the same footprint as the old text title and inherit the flicker
+   animation from the container. The logo PNG/SVG already bakes in the
+   red glow + amber underline. */
+.title-brand-logo {
+  display: block;
+  width: min(72vw, 560px);
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  /* extra red glow to match the rest of the UI even if the SVG renders
+     without Creepster loaded */
+  filter: drop-shadow(0 0 18px rgba(255, 58, 74, 0.45));
+}
+
+.title-brand:has(.title-brand-logo) {
+  /* Container no longer needs text-shadow when the image is present */
+  text-shadow: none;
+  font-size: 0; /* collapse any stray whitespace */
+  margin-bottom: 4px;
+}
+
 @keyframes titleFlicker {
   0%,
   90%,
