@@ -311,7 +311,9 @@
     // FIRE crystal (Elemental Hand): smoldering atop a boiler coil in the lower chamber.
     // Only shows if the player has the Grabpack but doesn't yet own Fire.
     if (window.HorridorsWallet && window.HorridorsWallet.hasGrabpack() && !window.HorridorsWallet.hasElement('fire')) {
-      items.push({ kind: 'crystal', element: 'fire', x: 2000, y: 1380, w: 18, h: 18, collected: false });
+      items.push({ kind: 'crystal', element: 'fire', x: 2000, y: 1380, w: 22, h: 22, collected: false });
+      // Nudge the player toward it the moment they enter.
+      setTimeout(() => { try { speak && speak('🔥 A warm flicker pulses deep in the boiler room — feels like fire.', 3800); } catch(e) {} }, 1800);
     }
 
     // FIXED story order (1 → 3 → 2) — Mum's note in the middle chamber spells it.
@@ -828,27 +830,41 @@
           ? window.HorridorsWallet.elementMeta(it.element)
           : null;
         const color = (meta && meta.color) || '#ff8a3a';
-        const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, 24);
+        // Bright outer glow so the crystal reads from across a dark room.
+        const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, 40);
         grad.addColorStop(0, color);
-        grad.addColorStop(0.5, color + '55');
+        grad.addColorStop(0.35, color + '99');
+        grad.addColorStop(0.7, color + '33');
         grad.addColorStop(1, color + '00');
-        ctx.fillStyle = grad; ctx.globalAlpha = 0.8 * pulse;
-        ctx.beginPath(); ctx.arc(cx, cy, 24, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = grad; ctx.globalAlpha = 0.95 * pulse;
+        ctx.beginPath(); ctx.arc(cx, cy, 40, 0, Math.PI*2); ctx.fill();
         ctx.globalAlpha = 1;
-        // Diamond body
+        // Tiny floating sparks (flame feel) for fire, soft orbs otherwise.
+        const tNow = performance.now() / 600;
+        for (let k = 0; k < 4; k++) {
+          const ang = tNow + k * Math.PI / 2;
+          const r = 10 + 4 * Math.sin(tNow * 2 + k);
+          const sx = cx + Math.cos(ang) * r;
+          const sy = cy + Math.sin(ang) * r - 2;
+          ctx.fillStyle = color;
+          ctx.globalAlpha = 0.6 + 0.4 * Math.sin(tNow * 3 + k);
+          ctx.beginPath(); ctx.arc(sx, sy, 1.6, 0, Math.PI*2); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        // Diamond body (bigger to match 22px hitbox)
         ctx.fillStyle = color;
         ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 1.8;
         ctx.beginPath();
-        ctx.moveTo(cx, cy - 9);
-        ctx.lineTo(cx + 7, cy);
-        ctx.lineTo(cx, cy + 9);
-        ctx.lineTo(cx - 7, cy);
+        ctx.moveTo(cx, cy - 11);
+        ctx.lineTo(cx + 9, cy);
+        ctx.lineTo(cx, cy + 11);
+        ctx.lineTo(cx - 9, cy);
         ctx.closePath();
         ctx.fill(); ctx.stroke();
         // White glint
-        ctx.fillStyle = 'rgba(255,255,255,0.9)';
-        ctx.beginPath(); ctx.arc(cx - 2, cy - 3, 1.6, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.beginPath(); ctx.arc(cx - 2, cy - 3, 2, 0, Math.PI*2); ctx.fill();
       } else if (it.kind === 'key') {
         // Skeleton key glow
         const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, 30);

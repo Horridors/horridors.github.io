@@ -1,6 +1,6 @@
 // Horridors — Service Worker (offline cache)
 // Cache-first strategy for static assets. Bump CACHE_VERSION on any meaningful change.
-const CACHE_VERSION = 'horridors-v23u-l2-water-crystal-spawn-on-grabpack';
+const CACHE_VERSION = 'horridors-v23v-crystal-findability-polish';
 const ASSETS = [
   './',
   './index.html',

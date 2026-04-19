@@ -508,6 +508,8 @@
         speak('🧤 THE GRABPACK! Press 1–5 to pick an element, then E to use it.', 6000);
         sfx('good');
         setTimeout(() => sfx('jingle'), 300);
+        // Nudge the player toward the Water crystal in the Aquarium.
+        setTimeout(() => { try { speak('💧 Something shiny shimmers down in the AQUARIUM — Water crystal.', 3800); } catch(e) {} }, 6400);
         if (window.refreshChecklist) window.refreshChecklist();
         return;
       }
@@ -1286,27 +1288,30 @@
             : { color: it.crystalColor || '#6ac8ff', icon: '💧' };
           const color = meta.color;
           const pulse = 0.7 + Math.sin(performance.now()/280) * 0.3;
-          // Outer glow
+          // Large, multi-stop glow so it's visible even across a dark room.
           ctx.save();
-          ctx.globalAlpha = 0.55 * pulse;
-          const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 22);
-          g.addColorStop(0, color); g.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.globalAlpha = 0.9 * pulse;
+          const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 40);
+          g.addColorStop(0, color);
+          g.addColorStop(0.35, color + '99');
+          g.addColorStop(0.7, color + '33');
+          g.addColorStop(1, 'rgba(0,0,0,0)');
           ctx.fillStyle = g;
-          ctx.fillRect(-22, -22, 44, 44);
+          ctx.fillRect(-40, -40, 80, 80);
           ctx.restore();
-          // Diamond body
+          // Diamond body (matches 22px hitbox)
           ctx.fillStyle = color;
           ctx.beginPath();
-          ctx.moveTo(0, -9);
-          ctx.lineTo(7, 0);
-          ctx.lineTo(0, 9);
-          ctx.lineTo(-7, 0);
+          ctx.moveTo(0, -11);
+          ctx.lineTo(9, 0);
+          ctx.lineTo(0, 11);
+          ctx.lineTo(-9, 0);
           ctx.closePath();
           ctx.fill();
-          ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.2; ctx.stroke();
+          ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.6; ctx.stroke();
           // Highlight glint
-          ctx.fillStyle = 'rgba(255,255,255,0.9)';
-          ctx.beginPath(); ctx.moveTo(-2, -4); ctx.lineTo(2, -2); ctx.lineTo(-2, 2); ctx.closePath(); ctx.fill();
+          ctx.fillStyle = 'rgba(255,255,255,0.95)';
+          ctx.beginPath(); ctx.moveTo(-2, -5); ctx.lineTo(2, -2); ctx.lineTo(-2, 2); ctx.closePath(); ctx.fill();
           break;
         }
         case 'gem': {
@@ -2086,7 +2091,14 @@
     }
     // ---- WATER crystal: spawned via spawnWaterCrystal() so we can add it at
     // reset OR mid-level (the instant the Grabpack is picked up). ----
+    const _hadWaterBefore = !!(window.HorridorsWallet && window.HorridorsWallet.hasElement('water'));
+    const _hadPackBefore  = !!(window.HorridorsWallet && window.HorridorsWallet.hasGrabpack());
     spawnWaterCrystal();
+    // If the player already arrives in L2 with a Grabpack but no Water, nudge
+    // them toward the aquarium so they know to look for the crystal.
+    if (_hadPackBefore && !_hadWaterBefore) {
+      setTimeout(() => { try { speak('💧 A cool glimmer waits in the AQUARIUM — Water crystal.', 3600); } catch(e) {} }, 2200);
+    }
 
     buildWalls();
     // Reset player & camera

@@ -746,7 +746,18 @@
     if (!(window.HorridorsWallet && window.HorridorsWallet.hasGrabpack())) return;
     if (window.HorridorsWallet.hasElement('earth')) return;
     if (!window._l5Earth) {
-      window._l5Earth = { x: 260, y: 540, w: 18, h: 18, collected: false };
+      window._l5Earth = { x: 260, y: 540, w: 22, h: 22, collected: false };
+      if (!window._l5EarthHinted) {
+        window._l5EarthHinted = true;
+        try {
+          setTimeout(() => {
+            if (state && typeof state === 'object') {
+              state.speakerLine = '🌱 A mossy glow flickers just to your RIGHT — Earth crystal.';
+              state.speakerT = 3200;
+            }
+          }, 1400);
+        } catch(e) {}
+      }
     }
     const it = window._l5Earth;
     if (it.collected) return;
@@ -768,25 +779,26 @@
     const pulse = 0.7 + 0.3 * Math.sin(t * 3);
     const color = '#7ac266';
     ctx.save();
-    const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, 24);
+    const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, 40);
     grad.addColorStop(0, color);
-    grad.addColorStop(0.5, color + '55');
+    grad.addColorStop(0.35, color + '99');
+    grad.addColorStop(0.7, color + '33');
     grad.addColorStop(1, color + '00');
-    ctx.fillStyle = grad; ctx.globalAlpha = 0.8 * pulse;
-    ctx.beginPath(); ctx.arc(cx, cy, 24, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = grad; ctx.globalAlpha = 0.95 * pulse;
+    ctx.beginPath(); ctx.arc(cx, cy, 40, 0, Math.PI*2); ctx.fill();
     ctx.globalAlpha = 1;
     ctx.fillStyle = color;
     ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1.8;
     ctx.beginPath();
-    ctx.moveTo(cx, cy - 9);
-    ctx.lineTo(cx + 7, cy);
-    ctx.lineTo(cx, cy + 9);
-    ctx.lineTo(cx - 7, cy);
+    ctx.moveTo(cx, cy - 11);
+    ctx.lineTo(cx + 9, cy);
+    ctx.lineTo(cx, cy + 11);
+    ctx.lineTo(cx - 9, cy);
     ctx.closePath();
     ctx.fill(); ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.beginPath(); ctx.arc(cx - 2, cy - 3, 1.6, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.beginPath(); ctx.arc(cx - 2, cy - 3, 2, 0, Math.PI*2); ctx.fill();
     ctx.restore();
   }
 

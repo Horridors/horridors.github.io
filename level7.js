@@ -467,7 +467,18 @@
     // has the Grabpack and doesn't yet own Air.
     if (window.HorridorsWallet && window.HorridorsWallet.hasGrabpack() && !window.HorridorsWallet.hasElement('air')) {
       if (!state.airCrystal) {
-        state.airCrystal = { x: WORLD_W/2 - 9, y: ARENA.y1 + 30, w: 18, h: 18, collected: false };
+        // Floated down from the ceiling vent and settled just to the LEFT of
+        // the player's spawn point — so it's visible in the camera on round 1
+        // and can be grabbed before the boss fight begins in earnest.
+        state.airCrystal = {
+          x: ARENA.x1 + 120,
+          y: ARENA.y2 - 160,
+          w: 22, h: 22, collected: false,
+        };
+        if (!state.airCrystalHinted) {
+          state.airCrystalHinted = true;
+          setTimeout(() => { try { speak('💨 A breeze flutters to your LEFT — Air crystal.', 3400); } catch(e) {} }, 1600);
+        }
       }
       const it = state.airCrystal;
       if (!it.collected && rectIntersect(player, it)) {
@@ -641,34 +652,35 @@
     const pulse = 0.7 + 0.3 * Math.sin(t * 3);
     const color = '#cfe6ff';
     ctx.save();
-    // Wispy breeze rings around it
-    ctx.strokeStyle = 'rgba(207,230,255,0.35)';
-    ctx.lineWidth = 1.2;
-    for (let i = 0; i < 3; i++) {
-      const r = 14 + i * 6 + Math.sin(t * 2 + i) * 2;
+    // Wispy breeze rings around it — wider so the crystal reads from a distance.
+    ctx.strokeStyle = 'rgba(207,230,255,0.4)';
+    ctx.lineWidth = 1.4;
+    for (let i = 0; i < 4; i++) {
+      const r = 18 + i * 7 + Math.sin(t * 2 + i) * 2;
       ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
     }
-    // Glow
-    const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, 26);
+    // Brighter, bigger glow.
+    const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, 40);
     grad.addColorStop(0, color);
-    grad.addColorStop(0.5, color + '55');
+    grad.addColorStop(0.35, color + '99');
+    grad.addColorStop(0.7, color + '33');
     grad.addColorStop(1, color + '00');
-    ctx.fillStyle = grad; ctx.globalAlpha = 0.85 * pulse;
-    ctx.beginPath(); ctx.arc(cx, cy, 26, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = grad; ctx.globalAlpha = 0.95 * pulse;
+    ctx.beginPath(); ctx.arc(cx, cy, 40, 0, Math.PI * 2); ctx.fill();
     ctx.globalAlpha = 1;
-    // Diamond body
+    // Diamond body (bigger to match 22px hitbox)
     ctx.fillStyle = color;
     ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1.8;
     ctx.beginPath();
-    ctx.moveTo(cx, cy - 9);
-    ctx.lineTo(cx + 7, cy);
-    ctx.lineTo(cx, cy + 9);
-    ctx.lineTo(cx - 7, cy);
+    ctx.moveTo(cx, cy - 11);
+    ctx.lineTo(cx + 9, cy);
+    ctx.lineTo(cx, cy + 11);
+    ctx.lineTo(cx - 9, cy);
     ctx.closePath();
     ctx.fill(); ctx.stroke();
     ctx.fillStyle = 'rgba(255,255,255,0.95)';
-    ctx.beginPath(); ctx.arc(cx - 2, cy - 3, 1.8, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx - 2, cy - 3, 2, 0, Math.PI*2); ctx.fill();
     ctx.restore();
   }
 
