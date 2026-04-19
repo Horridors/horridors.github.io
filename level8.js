@@ -902,37 +902,61 @@
     }
 }
 
+  // Map L8 enemy 'kind' -> canonical character name known to HorridorsSprites.
+  // Using the shared bitmap portraits keeps the L8 cast visually in sync with
+  // every other level + the character-cards in the marketing pack.
+  const ENEMY_CHAR = { socky: 'sockyshok', expre: 'expreshon', exlena: 'exlena', drip: 'drip' };
+
   function drawEnemy(e) {
     const bob = Math.sin(e.bob * 2) * 3;
     const y = e.y + bob;
-    let img;
-    if (e.kind === 'socky') img = buildSockySprite();
-    else if (e.kind === 'expre') img = buildExPreshonSprite();
-    else if (e.kind === 'exlena') img = buildExlenaSprite();
-    else if (e.kind === 'drip') img = buildDripSprite();
-    if (!img) return;
-    ctx.save();
-    if (e.dead) {
-      const k = Math.max(0, e.deadT / 1.2);
-      ctx.globalAlpha = k;
-      ctx.translate(e.x + e.w/2, y + e.h/2);
-      ctx.rotate((1 - k) * 0.8);
-      ctx.translate(-e.w/2, -e.h/2);
-      ctx.drawImage(img, 0, 0, e.w, e.h);
-      ctx.restore();
-      return;
-    }
-    if (e.hurtT > 0) {
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.globalAlpha = 1;
+    const charName = ENEMY_CHAR[e.kind];
+    const Sprites = window.HorridorsSprites;
+    // Fallback: if the shared portraits aren't available for any reason, use
+    // the legacy programmatic sprites so nothing disappears.
+    if (!Sprites || !Sprites.drawCharacter) {
+      let img;
+      if (e.kind === 'socky') img = buildSockySprite();
+      else if (e.kind === 'expre') img = buildExPreshonSprite();
+      else if (e.kind === 'exlena') img = buildExlenaSprite();
+      else if (e.kind === 'drip') img = buildDripSprite();
+      if (!img) return;
       ctx.drawImage(img, e.x, y, e.w, e.h);
-      ctx.globalCompositeOperation = 'source-atop';
-      ctx.fillStyle = `rgba(255, 255, 255, ${e.hurtT * 2})`;
-      ctx.fillRect(e.x, y, e.w, e.h);
     } else {
-      ctx.drawImage(img, e.x, y, e.w, e.h);
+      // drawCharacter uses a (bottom-center feet anchor, height) contract.
+      const cx = e.x + e.w / 2;
+      const cy = y + e.h;
+      ctx.save();
+      if (e.dead) {
+        const k = Math.max(0, e.deadT / 1.2);
+        ctx.globalAlpha = k;
+        // Spin around the enemy's center while fading out.
+        ctx.translate(e.x + e.w/2, y + e.h/2);
+        ctx.rotate((1 - k) * 0.8);
+        ctx.translate(-(e.x + e.w/2), -(y + e.h/2));
+      }
+      Sprites.drawCharacter(ctx, charName, cx, cy, 1, e.h);
+      ctx.restore();
+      // Hurt flash: a soft white oval overlay centered on the sprite — cheap,
+      // reads clearly, and doesn't depend on the image's own alpha channel.
+      if (!e.dead && e.hurtT > 0) {
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, e.hurtT * 2);
+        ctx.globalCompositeOperation = 'lighter';
+        const gr = ctx.createRadialGradient(cx, y + e.h / 2, 2, cx, y + e.h / 2, Math.max(e.w, e.h) * 0.55);
+        gr.addColorStop(0, 'rgba(255,255,255,0.9)');
+        gr.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = gr;
+        ctx.beginPath();
+        ctx.ellipse(cx, y + e.h / 2, e.w * 0.6, e.h * 0.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+      if (e.dead) {
+        // Early-out before drawing the HP bar for dead enemies.
+        return;
+      }
     }
-    ctx.restore();
     // HP bar
     const hpRatio = e.hp / e.maxHp;
     ctx.fillStyle = 'rgba(0,0,0,0.5)';

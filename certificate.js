@@ -126,13 +126,28 @@
   window.__markLevelComplete = markComplete;
 
   function unlockAll() {
-    // Unlock every tier — used by dev helpers and by the cert-key recovery flow.
+    // Unlock every tier — dev helper only. The cert-key recovery flow must NOT
+    // use this: entering (e.g.) an Easy cert key should not silently hand out
+    // a Hard or Extreme certificate. Use unlockTier(tierId) for that.
     for (const t of TIERS_LIST) {
       for (let i = 1; i <= 8; i++) progressByTier[t][i] = true;
     }
     refreshJumpButtonLocks();
   }
   window.__unlockAllLevels = unlockAll;
+
+  // Unlock a single tier's 8 levels. Used by cert-key recovery so a player who
+  // earned an Easy certificate gets Easy back on a fresh device — and ONLY Easy.
+  function unlockTier(tierId) {
+    if (!progressByTier[tierId]) return;
+    for (let i = 1; i <= 8; i++) progressByTier[tierId][i] = true;
+    // Stamp a completion date so the cert prints something sensible if the
+    // player views it immediately after restore. If they already had a date
+    // from this session's play, don't overwrite it.
+    if (!completedAtByTier[tierId]) completedAtByTier[tierId] = Date.now();
+    refreshJumpButtonLocks();
+  }
+  window.__unlockTier = unlockTier;
 
   // Wipe progress on a single tier. Used by the difficulty-switch guard to
   // enforce "a certificate requires all 8 levels consecutively at the same
@@ -389,9 +404,9 @@
       return;
     }
     // Apply: set difficulty (force past the guard — we just verified no run is
-    // in progress), unlock all, close.
+    // in progress), unlock ONLY this tier (not every tier), close.
     try { window.__difficulty && window.__difficulty.set(res.tierId, { force: true }); } catch (e) {}
-    unlockAll();
+    unlockTier(res.tierId);
     try { refreshCertificatePanel(); } catch (e) {}
     result.textContent = 'Unlocked — welcome back, ' + res.name + '.';
     result.classList.remove('err'); result.classList.add('ok');

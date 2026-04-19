@@ -471,8 +471,10 @@
         // the player's spawn point — so it's visible in the camera on round 1
         // and can be grabbed before the boss fight begins in earnest.
         state.airCrystal = {
-          x: ARENA.x1 + 120,
-          y: ARENA.y2 - 160,
+          // Just to the left of the player's spawn column but safely inside the
+          // camera's default horizontal window, so it's visible immediately.
+          x: WORLD_W / 2 - 210,
+          y: ARENA.y2 - 170,
           w: 22, h: 22, collected: false,
         };
         if (!state.airCrystalHinted) {

@@ -690,7 +690,9 @@
   }
   function drawPlayerSprite() {
     if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
-      window.HorridorsSprites.drawChesterWalk(ctx, player.x + player.w/2, player.y + player.h + 8, (player.facing !== undefined ? (Math.cos(player.facing) >= 0 ? 1 : -1) : 1), 56, player.vx, player.vy);
+      // Pass undefined vx/vy so the shared sprite helper auto-detects motion
+      // from position deltas (L6 doesn't maintain a vx/vy on the player).
+      window.HorridorsSprites.drawChesterWalk(ctx, player.x + player.w/2, player.y + player.h + 8, (player.facing !== undefined ? (Math.cos(player.facing) >= 0 ? 1 : -1) : 1), 56, undefined, undefined, 'l6_player');
       return;
     }
 }

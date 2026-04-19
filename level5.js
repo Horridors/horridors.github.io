@@ -410,7 +410,9 @@
   // ---------- Chester sprite (same raincoat style as L3/L4) ----------
   function drawChester(cx, cy, scale = 1, facing = 1) {
     if (window.HorridorsSprites && window.HorridorsSprites.drawChesterWalk) {
-      window.HorridorsSprites.drawChesterWalk(ctx, cx, cy + 30*scale, facing, 56*scale, player.vx, player.vy);
+      // Pass undefined vx/vy so the shared sprite helper auto-detects motion
+      // from cx/cy deltas (L5 moves player by direct x/y, never sets vx/vy).
+      window.HorridorsSprites.drawChesterWalk(ctx, cx, cy + 30*scale, facing, 56*scale, undefined, undefined, 'l5_player');
       return;
     }
     if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
