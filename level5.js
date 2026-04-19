@@ -353,6 +353,10 @@
 
   // ---------- Chester sprite (same raincoat style as L3/L4) ----------
   function drawChester(cx, cy, scale = 1, facing = 1) {
+    if (window.HorridorsSprites && window.HorridorsSprites.drawChesterWalk) {
+      window.HorridorsSprites.drawChesterWalk(ctx, cx, cy + 30*scale, facing, 56*scale, player.vx, player.vy);
+      return;
+    }
     if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
       window.HorridorsSprites.drawCharacter(ctx, 'chester', cx, cy + 30*scale, facing, 56*scale);
       return;

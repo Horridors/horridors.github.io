@@ -666,7 +666,7 @@
   }
   function drawPlayerSprite() {
     if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
-      window.HorridorsSprites.drawCharacter(ctx, 'chester', player.x + player.w/2, player.y + player.h + 8, (player.facing !== undefined ? (Math.cos(player.facing) >= 0 ? 1 : -1) : 1), 56);
+      window.HorridorsSprites.drawChesterWalk(ctx, player.x + player.w/2, player.y + player.h + 8, (player.facing !== undefined ? (Math.cos(player.facing) >= 0 ? 1 : -1) : 1), 56, player.vx, player.vy);
       return;
     }
 }

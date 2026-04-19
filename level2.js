@@ -1220,7 +1220,7 @@
 
   function drawPlayer() {
     if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
-      window.HorridorsSprites.drawCharacter(ctx, 'chester', (player.x + player.w/2) - camera.x, (player.y + player.h + 8) - camera.y, (player.facing !== undefined ? (Math.cos(player.facing) >= 0 ? 1 : -1) : 1), 56);
+      window.HorridorsSprites.drawChesterWalk(ctx, (player.x + player.w/2) - camera.x, (player.y + player.h + 8) - camera.y, (player.facing !== undefined ? (Math.cos(player.facing) >= 0 ? 1 : -1) : 1), 56, player.vx, player.vy);
       return;
     }
 }

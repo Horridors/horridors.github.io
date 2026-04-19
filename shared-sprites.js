@@ -73,7 +73,10 @@
   // Unified bitmap character drawing.
   // cx, cy = bottom-center anchor (feet). facing: +1 right, -1 left.
   // sizePx = desired rendered height in pixels (default 72 — roughly matches old procedural size).
-  function drawCharacter(ctx, name, cx, cy, facing = 1, sizePx = 72) {
+  // opts: { walk: boolean, t: number } — when walk is true, apply a subtle walk-cycle
+  //       animation (vertical bob + squash/stretch + tilt sway). t is a phase value in
+  //       seconds (typically performance.now()/1000). When idle, a very gentle breathing.
+  function drawCharacter(ctx, name, cx, cy, facing = 1, sizePx = 72, opts) {
     const key = String(name || '').toLowerCase().replace(/[^a-z]/g, '');
     const img = images[key];
     if (!img || !img.complete || img.naturalWidth === 0) {
@@ -90,21 +93,70 @@
     const aspect = img.naturalWidth / img.naturalHeight;
     const h = sizePx;
     const w = sizePx * aspect;
+
+    // Walk-cycle animation parameters
+    const walking = !!(opts && opts.walk);
+    const t = (opts && typeof opts.t === 'number') ? opts.t : performance.now() / 1000;
+    let bob = 0, sx = 1, sy = 1, tilt = 0;
+    if (walking) {
+      // ~5 steps per second — fast pitter-patter for a kid running
+      const ph = t * 11; // ~1.75 Hz full cycle
+      // Body bob: noticeable up/down — ~9% of sprite height (about 5px on a 56px sprite)
+      bob = -Math.abs(Math.sin(ph)) * h * 0.09;
+      // Landing squash — when foot plants, slight vertical compress + horizontal stretch
+      const plant = 1 - Math.abs(Math.sin(ph)); // 0 at apex, 1 at plant
+      sy = 1 - plant * 0.06;
+      sx = 1 + plant * 0.06;
+      // Side-to-side tilt sway — more pronounced, matches step rhythm
+      tilt = Math.sin(ph) * 0.09; // radians (~5 deg)
+    } else {
+      // Idle breathing: slow, small vertical oscillation
+      bob = Math.sin(t * 1.8) * h * 0.008;
+      sy = 1 + Math.sin(t * 1.8) * 0.006;
+    }
+
     ctx.save();
-    // Soft ground shadow
+    // Soft ground shadow — stays on the floor (no bob)
     ctx.fillStyle = 'rgba(0,0,0,0.28)';
     ctx.beginPath();
-    ctx.ellipse(cx, cy - 1, w * 0.32, h * 0.06, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy - 1, w * 0.32 * (walking ? (1 - Math.abs(Math.sin(t * 8)) * 0.08) : 1), h * 0.06, 0, 0, Math.PI * 2);
     ctx.fill();
-    // Draw image centered horizontally, feet at cy
-    if (facing < 0) {
-      ctx.translate(cx, 0);
-      ctx.scale(-1, 1);
-      ctx.drawImage(img, -w / 2, cy - h, w, h);
-    } else {
-      ctx.drawImage(img, cx - w / 2, cy - h, w, h);
-    }
+
+    // Transform for body: pivot at feet, apply tilt + squash + bob, then mirror if facing left
+    ctx.translate(cx, cy);
+    if (tilt) ctx.rotate(tilt * facing);
+    if (facing < 0) ctx.scale(-1, 1);
+    if (sx !== 1 || sy !== 1) ctx.scale(sx, sy);
+    ctx.drawImage(img, -w / 2, -h + bob, w, h);
     ctx.restore();
+  }
+
+  // Per-entity motion tracker for auto-detecting walk animation.
+  // Keyed by a stable id (e.g. 'player'). Call each frame; returns true if moving.
+  const _motionCache = new Map();
+  function _detectMotion(id, x, y) {
+    const now = performance.now();
+    const prev = _motionCache.get(id);
+    _motionCache.set(id, { x, y, t: now });
+    if (!prev) return false;
+    const dt = now - prev.t;
+    if (dt <= 0) return false;
+    const dx = x - prev.x, dy = y - prev.y;
+    const distSq = dx * dx + dy * dy;
+    // Moving if displacement > ~0.3 px in this frame (works for any dt)
+    return distSq > 0.09;
+  }
+
+  // Player-specific wrapper with automatic walk detection.
+  // id lets multiple characters track motion independently ('player' by default).
+  function drawChesterWalk(ctx, cx, cy, facing = 1, sizePx = 56, vx, vy, id = 'player') {
+    let walking;
+    if (typeof vx === 'number' || typeof vy === 'number') {
+      walking = Math.abs(vx || 0) > 4 || Math.abs(vy || 0) > 4;
+    } else {
+      walking = _detectMotion(id, cx, cy);
+    }
+    drawCharacter(ctx, 'chester', cx, cy, facing, sizePx, { walk: walking, t: performance.now() / 1000 });
   }
 
   // Kept for legacy callers — now uses bitmap if available, else procedural fallback
@@ -229,6 +281,7 @@
   window.HorridorsSprites = {
     PAL,
     drawChester,
+    drawChesterWalk,
     drawThistle,
     drawCoin,
     drawCharacter,
