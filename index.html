@@ -9,7 +9,30 @@
     <meta name="theme-color" content="#07070b" />
     <meta name="application-name" content="Horridors" />
     <meta name="apple-mobile-web-app-title" content="Horridors" />
-    <meta name="description" content="Horridors — a kid-friendly horror adventure. Chester faces the Horridors to rescue Mum." />
+    <meta name="description" content="Horridors — a kid-friendly horror adventure. Chester must face the Horridors to rescue his Mum. 8 levels, play free in your browser. Game built by Chester Edmunds, age 7." />
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://horridors.com/" />
+
+    <!-- Open Graph (Facebook / WhatsApp / Discord / iMessage / LinkedIn) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Horridors" />
+    <meta property="og:url" content="https://horridors.com/" />
+    <meta property="og:title" content="Horridors — a kid-friendly horror adventure" />
+    <meta property="og:description" content="Chester must face the Horridors to rescue his Mum. 8 levels, play free in your browser. Game built by Chester Edmunds, age 7." />
+    <meta property="og:image" content="https://horridors.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The Horridors cast: Chester, Mum and the monsters." />
+    <meta property="og:locale" content="en_GB" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Horridors — a kid-friendly horror adventure" />
+    <meta name="twitter:description" content="Chester must face the Horridors to rescue his Mum. 8 levels, play free. Built by Chester Edmunds, age 7." />
+    <meta name="twitter:image" content="https://horridors.com/og-image.png" />
+    <meta name="twitter:image:alt" content="The Horridors cast: Chester, Mum and the monsters." />
+
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="./icon.svg" />
     <link rel="apple-touch-icon" href="./icon-192.png" />
@@ -1267,5 +1290,11 @@
     <script src="./shared-touch.js"></script>
     <script src="./fullscreen.js"></script>
     <script src="./pwa-register.js"></script>
+
+    <!-- Cloudflare Web Analytics (cookieless, kid-safe).
+         Replace CF_BEACON_TOKEN_PLACEHOLDER with the token from
+         Cloudflare → Analytics & Logs → Web Analytics → Add site. -->
+    <script defer src="https://static.cloudflareinsights.com/beacon.min.js"
+      data-cf-beacon='{"token": "CF_BEACON_TOKEN_PLACEHOLDER"}'></script>
   </body>
 </html>
