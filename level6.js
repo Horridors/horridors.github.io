@@ -468,7 +468,7 @@
     }
 
     // Interact
-    if (wasPressed('e')) {
+    if (wasPressed('e', ' ')) {
       if (state.pluggedCount >= 3) { tryFinalUnplug(); }
       else if (player.carrying) { tryPlugInSocket(); }
       else { tryPickPlug(); }

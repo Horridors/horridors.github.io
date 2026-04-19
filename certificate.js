@@ -113,13 +113,16 @@
           window.HorridorsWallet.commitLevelRun();
         }
       } catch (e) {}
-      // L8 completion → stamp the completion date (once) and show the cert.
+      // L8 completion → stamp the completion date (once) and make the
+      // certificate available. The old behaviour auto-opened the cert overlay
+      // 400ms after markComplete(8), which blocked the WE WON / Roll Credits
+      // flow. Now the player opens the cert themselves via a "View Certificate"
+      // button on the WE WON panel — see level8.js btn-l8-cert.
       if (n === 8) {
         if (isTierFullyCompleted(tier) && !completedAtByTier[tier]) {
           completedAtByTier[tier] = Date.now();
         }
         try { refreshCertificatePanel(); } catch (e) {}
-        try { setTimeout(showCertificateOverlay, 400); } catch (e) {}
       }
     }
   }
@@ -462,13 +465,19 @@
         <div class="cert-actions">
           <button type="button" id="btn-cert-print" class="btn-primary">Print</button>
           <button type="button" id="btn-cert-save" class="btn-ghost">Save as image</button>
-          <button type="button" id="btn-cert-close" class="btn-ghost">Back to Title</button>
+          <button type="button" id="btn-cert-close" class="btn-ghost">Close</button>
         </div>
       </div>
     `;
     document.body.appendChild(ov);
     ov.querySelector('#btn-cert-close').addEventListener('click', () => {
       ov.classList.add('hidden');
+      // If the WE WON / L8 end panel is still visible behind the cert, stay
+      // there so the player can roll credits or head back to the title on
+      // their own terms. Otherwise, go back to the title.
+      const endPanel = document.getElementById('overlay-l8-end');
+      const endVisible = endPanel && !endPanel.classList.contains('hidden');
+      if (endVisible) return;
       if (window.__returnToTitle) window.__returnToTitle();
     });
     ov.querySelector('#btn-cert-print').addEventListener('click', printCertificate);

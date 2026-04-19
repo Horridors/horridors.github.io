@@ -564,8 +564,8 @@
     moveWithCollision(player, dx * SPEED * dt, dy * SPEED * dt);
     if (dx !== 0 || dy !== 0) player.step += dt * 8;
 
-    // Interact with switch on E
-    if (wasPressed('e')) {
+    // Interact with switch on E or Space
+    if (wasPressed('e', ' ')) {
       for (const sw of SWITCHES) {
         const d = Math.hypot((player.x + player.w/2) - (sw.x + sw.w/2), (player.y + player.h/2) - (sw.y + sw.h/2));
         if (d < 60) { pressSwitch(sw.id); break; }

@@ -688,8 +688,8 @@
       moveWithCollision(player, dx * spd, dy * spd);
       if (dx !== 0) player.facing = dx > 0 ? 1 : -1;
     }
-    // Punch / cage bash (A button / E key)
-    if (wasPressed('e', 'enter')) {
+    // Punch / cage bash (A button / E / Space / Enter)
+    if (wasPressed('e', ' ', 'enter')) {
       // Near cage & all enemies defeated?
       const allDead = enemies.every(x => x.dead) && waveIdx >= WAVE_QUEUE.length;
       const nearCage = (player.x + player.w/2 > cage.x - 30 && player.x + player.w/2 < cage.x + cage.w + 30 &&
@@ -1206,6 +1206,12 @@
     window.removeEventListener('keyup', keyup);
     window.removeEventListener('blur', blur);
     if (window.__startCredits) window.__startCredits();
+  });
+  // View Certificate — opens the cert overlay without leaving the WE WON
+  // panel. The cert overlay has its own Close button which returns here, so
+  // the player can still roll credits or head back to the title afterwards.
+  document.getElementById('btn-l8-cert')?.addEventListener('click', () => {
+    if (window.__showCertificate) window.__showCertificate();
   });
   document.getElementById('btn-l8-home')?.addEventListener('click', () => {
     running = false; stopAmbient();
