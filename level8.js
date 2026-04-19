@@ -62,7 +62,13 @@
   let exlenaMinionsSpawned = false;
 
   // Allies — team
-  const player = { x: ARENA.x1 + 200, y: ARENA.y2 - 120, w: 22, h: 28, facing: 1, punchT: 0 };
+  const player = { x: ARENA.x1 + 200, y: ARENA.y2 - 120, w: 22, h: 28, facing: 1, punchT: 0, blastCd: 0, elemIdx: 0 };
+  const GRABPACK_ELEMENTS = [
+    { id: 'fire',    color: '#ff7a45', glyph: '🔥', name: 'FIRE' },
+    { id: 'thunder', color: '#ffe066', glyph: '⚡', name: 'THUNDER' },
+    { id: 'earth',   color: '#6bcf6b', glyph: '🌱', name: 'EARTH' },
+    { id: 'water',   color: '#6fbfff', glyph: '💧', name: 'WATER' },
+  ];
   const thistle = { x: ARENA.x1 + 260, y: ARENA.y2 - 110, w: 20, h: 26, trail: [],
     atkCd: 0, hurtT: 0, vx: 0 };
   const inkybin = { x: ARENA.x1 + 320, y: ARENA.y2 - 100, w: 40, h: 40, trail: [],
@@ -90,7 +96,7 @@
       { title: 'The plan',
         text: 'Three of us — four of them. Each Horridor takes real hits now. Drip and Socky are dangerous, Ex Preshon throws heavy shadow orbs, and Exlena will call more Drips when she weakens. Stay moving. Save coins for upgrades next time you see a shop.' },
       { title: 'Controls',
-        text: 'Arrows / WASD to move. E to punch with the Grabpack (damage the nearest enemy). Get close to the cage and press E to bash it open.' },
+        text: 'Arrows / WASD to move. A / E to punch. B / Space to fire a Grabpack element (stronger, auto-aims at nearest Horridor). Keyboard: 1=Fire, 2=Thunder, 3=Earth, 4=Water. Get close to the cage and press A / E to bash it open.' },
     ],
   };
 
@@ -464,6 +470,34 @@
     }
   }
 
+  function fireGrabpackBlast(elemIdx) {
+    const el = GRABPACK_ELEMENTS[elemIdx];
+    const cx = player.x + player.w/2, cy = player.y + player.h/2;
+    // Auto-aim at nearest living enemy anywhere in arena
+    const near = nearestEnemy(cx, cy, 1e9);
+    let dx, dy;
+    if (near) {
+      const tx = near.e.x + near.e.w/2, ty = near.e.y + near.e.h/2;
+      const d = Math.hypot(tx - cx, ty - cy) || 1;
+      dx = (tx - cx) / d; dy = (ty - cy) / d;
+    } else {
+      dx = player.facing; dy = 0;
+    }
+    const spd = 420;
+    projectiles.push({
+      x: cx, y: cy, vx: dx * spd, vy: dy * spd - 20,
+      life: 1.4, r: 11, team: 'ally', damage: 2,
+      element: el.id, color: el.color, glyph: el.glyph,
+    });
+    player.blastCd = 0.55;
+    // Element-flavoured sound
+    if (el.id === 'fire')    [880, 660, 440].forEach((f,i) => setTimeout(() => tone(f, 0.14, 'sawtooth', 0.2), i*35));
+    else if (el.id === 'thunder') { tone(1400, 0.08, 'square', 0.22); setTimeout(() => tone(900, 0.1, 'square', 0.18), 50); }
+    else if (el.id === 'earth')   { tone(180, 0.22, 'triangle', 0.28); }
+    else if (el.id === 'water')   { tone(520, 0.18, 'sine', 0.2); setTimeout(() => tone(720, 0.15, 'sine', 0.16), 60); }
+    state.screenFlash = 0.08;
+  }
+
   function killEnemy(e) {
     if (e.dead) return;
     e.dead = true; e.deadT = 1.2;
@@ -644,8 +678,8 @@
       moveWithCollision(player, dx * spd, dy * spd);
       if (dx !== 0) player.facing = dx > 0 ? 1 : -1;
     }
-    // Punch / cage bash
-    if (wasPressed('e', ' ', 'enter')) {
+    // Punch / cage bash (A button / E key)
+    if (wasPressed('e', 'enter')) {
       // Near cage & all enemies defeated?
       const allDead = enemies.every(x => x.dead);
       const nearCage = (player.x + player.w/2 > cage.x - 30 && player.x + player.w/2 < cage.x + cage.w + 30 &&
@@ -659,6 +693,17 @@
       } else {
         playerPunch();
       }
+    }
+    // Grabpack elemental blast (B button / Space / 1-4 keys) — auto-aims, stronger than punch
+    if (player.blastCd > 0) player.blastCd -= dt;
+    let wantElem = -1;
+    if (wasPressed('1')) wantElem = 0;
+    else if (wasPressed('2')) wantElem = 1;
+    else if (wasPressed('3')) wantElem = 2;
+    else if (wasPressed('4')) wantElem = 3;
+    else if (wasPressed(' ')) { wantElem = player.elemIdx; player.elemIdx = (player.elemIdx + 1) % GRABPACK_ELEMENTS.length; }
+    if (wantElem >= 0 && player.blastCd <= 0) {
+      fireGrabpackBlast(wantElem);
     }
 
     // Thistle — follow player, bite nearest enemy
@@ -677,7 +722,7 @@
     for (let i = projectiles.length - 1; i >= 0; i--) {
       const p = projectiles[i];
       p.x += p.vx * dt; p.y += p.vy * dt;
-      p.vy += 120 * dt; // gravity-ish on lobs
+      if (!p.element) p.vy += 120 * dt; // gravity on lobs only, element blasts fly straight
       p.life -= dt;
       if (p.life <= 0) { projectiles.splice(i, 1); continue; }
       if (p.team === 'ally') {
@@ -936,7 +981,15 @@
 
   function drawProjectiles() {
     for (const p of projectiles) {
-      if (p.team === 'ally') {
+      if (p.team === 'ally' && p.element) {
+        // Grabpack elemental blast: colored core + glow + tiny trail halo
+        ctx.fillStyle = p.color + '55';
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 6, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(p.x - p.vx*0.005, p.y - p.vy*0.005, p.r * 0.45, 0, Math.PI*2); ctx.fill();
+      } else if (p.team === 'ally') {
         ctx.fillStyle = '#1a0a28';
         ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = 'rgba(100, 40, 200, 0.4)';
@@ -975,10 +1028,26 @@
     ctx.fillStyle = alive > 0 ? '#e34d6f' : '#8dc16b';
     ctx.font = '800 14px system-ui'; ctx.textAlign = 'left';
     ctx.fillText(`Horridors remaining: ${alive}`, 180, 26);
+    // Grabpack next-element chip (shown bottom-left)
+    const nextEl = GRABPACK_ELEMENTS[player.elemIdx];
+    const chipX = 16, chipY = VIEW_H - 44, chipW = 150, chipH = 32;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(chipX, chipY, chipW, chipH);
+    ctx.strokeStyle = nextEl.color; ctx.lineWidth = 2;
+    ctx.strokeRect(chipX + 0.5, chipY + 0.5, chipW - 1, chipH - 1);
+    ctx.fillStyle = nextEl.color;
+    ctx.font = '800 16px system-ui'; ctx.textAlign = 'left';
+    ctx.fillText(nextEl.glyph + ' ' + nextEl.name, chipX + 8, chipY + 21);
+    // Cooldown bar
+    if (player.blastCd > 0) {
+      const cdFrac = Math.max(0, player.blastCd / 0.55);
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.fillRect(chipX, chipY + chipH - 3, chipW * cdFrac, 3);
+    }
     // Controls hint
     ctx.font = '500 11px system-ui'; ctx.fillStyle = 'rgba(255,255,255,0.55)';
     ctx.textAlign = 'right';
-    ctx.fillText('WASD / arrows · E = punch / bash', VIEW_W - 16, oy + 6);
+    ctx.fillText('WASD · A/E = punch · B/Space = element blast', VIEW_W - 16, oy + 6);
     // Speaker line
     if (state.speakerLine && state.speakerT > 0) {
       ctx.fillStyle = 'rgba(20,10,30,0.85)';
