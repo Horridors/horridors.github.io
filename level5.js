@@ -321,11 +321,65 @@
   // Before freeing: she lives in her cell and signals.
   // Visual position inside cell (bobbing slightly)
   function drawThistleInCell() {
-    const tcx = (THISTLE.x1 + THISTLE.x2) / 2;
-    const tcy = (THISTLE.y1 + THISTLE.y2) / 2;
+    if (state.thistleFreed) return;
+    const tc = THISTLE;
+    const cx = (tc.x1 + tc.x2) / 2;
+    const cy = tc.y2 - 48;
+    const bob = Math.sin(performance.now() / 300) * 2;
+    // Bright highlight halo around Thistle's cell so she's easy to spot
+    const tglow = 0.55 + 0.25 * Math.sin(performance.now() / 500);
+    ctx.save();
+    const hg = ctx.createRadialGradient(cx, cy - 30, 10, cx, cy - 30, 160);
+    hg.addColorStop(0, 'rgba(255, 216, 74, ' + (0.35 * tglow).toFixed(3) + ')');
+    hg.addColorStop(1, 'rgba(255, 216, 74, 0)');
+    ctx.fillStyle = hg;
+    ctx.fillRect(cx - 160, cy - 190, 320, 320);
+    ctx.restore();
+    // Bouncing arrow + THISTLE label above cell
+    const arrY = 50 + Math.sin(performance.now() / 280) * 4;
+    ctx.save();
+    ctx.fillStyle = '#ffd84a';
+    ctx.strokeStyle = '#141414';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, arrY + 28);
+    ctx.lineTo(cx - 14, arrY + 10);
+    ctx.lineTo(cx - 6, arrY + 10);
+    ctx.lineTo(cx - 6, arrY - 8);
+    ctx.lineTo(cx + 6, arrY - 8);
+    ctx.lineTo(cx + 6, arrY + 10);
+    ctx.lineTo(cx + 14, arrY + 10);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#141414';
+    ctx.font = '800 11px system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('THISTLE', cx, arrY - 1);
+    ctx.restore();
+    // Sprite (sheriff-cat PNG), bobbing slightly
     if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
-      window.HorridorsSprites.drawCharacter(ctx, 'thistle', tcx, tcy + 30, 1, 56);
-      return;
+      window.HorridorsSprites.drawCharacter(ctx, 'thistle', cx, cy + bob + 30, 1, 72);
+    }
+    // Signal lightbulb above her when pattern is playing — flashes A/B/C letter
+    if (state.showingPattern && state.showPhase === 'on' && state.showIdx < state.pattern.length) {
+      const id = state.pattern[state.showIdx];
+      const color = SWITCHES[id].color;
+      const gx = cx, gy = cy - 78;
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      const g = ctx.createRadialGradient(gx, gy, 2, gx, gy, 48);
+      g.addColorStop(0, color);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(gx - 48, gy - 48, 96, 96);
+      ctx.restore();
+      ctx.fillStyle = color;
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(gx, gy, 16, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#141414';
+      ctx.font = '800 18px system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(SWITCHES[id].label, gx, gy);
     }
   }
 
@@ -374,7 +428,9 @@
       ctx.strokeStyle = '#0e0812';
       ctx.strokeRect(sw.x - 6 + 0.5, sw.y - 6 + 0.5, sw.w + 12 - 1, sw.h + 12 - 1);
       // Body
-      const flashing = (state.lastSwitchFlashId === sw.id) && state.lastSwitchFlashT > 0;
+      const showFlash = state.showingPattern && state.showPhase === 'on' &&
+        state.showIdx < state.pattern.length && state.pattern[state.showIdx] === sw.id;
+      const flashing = ((state.lastSwitchFlashId === sw.id) && state.lastSwitchFlashT > 0) || showFlash;
       const alpha = flashing ? 1 : 0.7;
       ctx.save();
       ctx.globalAlpha = alpha;
