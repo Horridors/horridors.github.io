@@ -605,7 +605,7 @@ const player = {
 };
 
 const monster = {
-  active: false, x: 0, y: 0, w: 26, h: 26, speed: 130, kind: 'grin',
+  active: false, x: 0, y: 0, w: 26, h: 26, speed: 117, kind: 'grin',
 };
 
 // Hollow (library lurker) — appears once player has been in library for >3s without moving much
