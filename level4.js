@@ -937,7 +937,9 @@
     if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
       ctx.save();
       ctx.translate(-cam.x, -cam.y);
-      window.HorridorsSprites.drawChesterWalk(ctx, player.x + player.w/2, player.y + player.h + 8, (player.facing !== undefined ? (Math.cos(player.facing) >= 0 ? 1 : -1) : 1), 56, player.vx, player.vy);
+      // Sprint animation triggers when Ex Preshon is actively charging — Chester runs fast.
+      const sprint = (expression && expression.state === 'charge');
+      window.HorridorsSprites.drawChesterWalk(ctx, player.x + player.w/2, player.y + player.h + 8, (player.facing !== undefined ? (Math.cos(player.facing) >= 0 ? 1 : -1) : 1), 56, player.vx, player.vy, 'player', sprint);
       ctx.restore();
       return;
     }
