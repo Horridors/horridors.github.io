@@ -1565,12 +1565,42 @@
     });
   }
 
+  function stopLevel4() {
+    running = false;
+    try { window.removeEventListener('keydown', keydown); } catch (e) {}
+    try { window.removeEventListener('keyup', keyup); } catch (e) {}
+    try { window.removeEventListener('blur', blur); } catch (e) {}
+    try { keys.clear(); } catch (e) {}
+    try { stopAmbient(); } catch (e) {}
+  }
+
+  function resumeLevel4() {
+    ensureAudio();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    startAmbient();
+    if (!running) {
+      window.addEventListener('keydown', keydown);
+      window.addEventListener('keyup', keyup);
+      window.addEventListener('blur', blur);
+      running = true;
+      lastT = performance.now();
+      requestAnimationFrame(loop);
+    }
+    ['overlay-l4-title','overlay-l4-end','overlay-caught','overlay-candles']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
+    state.scene = 'play';
+    registerL4Tasks && registerL4Tasks();
+  }
+
   // Expose
   window.__startLevel4 = start;
   window.__horridorsL4 = {
     audioCtx: () => audioCtx,
     masterGain: () => masterGain,
     stopAmbient,
+    stop: stopLevel4,
+    resume: resumeLevel4,
+    isRunning: () => running,
     sfx: (n) => { try { sfx(n); } catch (e) {} },
   };
   // Debug hook

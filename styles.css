@@ -1904,6 +1904,118 @@ body.has-touch .btn-primary {
 }
 
 /* ============================================================
+   GRAPHICS POLISH — atmospheric overlays layered on top of the
+   canvas for a cleaner, more cinematic look across all levels.
+   These are pure CSS so no render code is touched.
+   • Radial vignette darkens the corners (depth cue)
+   • Subtle film grain (pre-baked SVG noise) adds texture warmth
+   • Soft top-down light tint brightens the centre
+   ============================================================ */
+#game-frame {
+  position: relative; /* already set elsewhere but ensure for ::after */
+}
+/* Give the raw canvas output a tiny clarity boost — adds bite to edges and
+   slightly richer colour without breaking any level's art intent. */
+#game {
+  filter: contrast(1.06) saturate(1.09) brightness(1.015);
+  image-rendering: auto;
+}
+#game-frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5; /* above canvas, below HUD/overlays */
+  background:
+    /* Warm centre highlight */
+    radial-gradient(ellipse 70% 50% at 50% 38%, rgba(255, 224, 170, 0.06), transparent 65%),
+    /* Corner vignette */
+    radial-gradient(ellipse 120% 90% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.42) 100%),
+    /* Subtle film grain via SVG noise */
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.6  0 0 0 0 0.6  0 0 0 0 0.6  0 0 0 0.06 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 100% 100%, 100% 100%, 140px 140px;
+  mix-blend-mode: normal;
+  opacity: 0.95;
+}
+/* Disable polish on specific overlays where it would interfere */
+body.polish-off #game-frame::after { display: none; }
+
+/* ============================================================
+   PER-LEVEL GRAPHICS TUNING (L1–L5)
+   Each level gets its own color grade on the canvas + a second
+   atmospheric pass above the canvas (below HUD). This makes every
+   chapter feel visually distinct and "cleaner / more realistic"
+   without touching the canvas render code.
+   ============================================================ */
+
+/* Shared: an extra atmosphere pass stacked on top of #game, sitting
+   just above #game-frame::after so levels can layer their own mood
+   light, god-rays, or dust motes. */
+#game-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4; /* above canvas (auto), below #game-frame::after (5) */
+  background: transparent;
+  opacity: 1;
+  transition: background 400ms ease, opacity 400ms ease;
+}
+
+/* ---- Level 1: warm, soft daylight attic ---- */
+body.level-1 #game {
+  filter: contrast(1.08) saturate(1.12) brightness(1.02) hue-rotate(-2deg);
+}
+body.level-1 #game-frame::before {
+  background:
+    radial-gradient(ellipse 60% 45% at 55% 30%, rgba(255, 218, 150, 0.10), transparent 70%),
+    radial-gradient(ellipse 90% 70% at 50% 90%, rgba(60, 20, 40, 0.18), transparent 75%);
+}
+
+/* ---- Level 2: cool moonlit corridor ---- */
+body.level-2 #game {
+  filter: contrast(1.10) saturate(0.96) brightness(0.97) hue-rotate(6deg);
+}
+body.level-2 #game-frame::before {
+  background:
+    radial-gradient(ellipse 55% 40% at 50% 20%, rgba(140, 180, 255, 0.09), transparent 65%),
+    linear-gradient(180deg, rgba(10, 14, 28, 0.18) 0%, transparent 40%, rgba(0, 0, 0, 0.22) 100%);
+}
+
+/* ---- Level 3: industrial rust + sodium lamps ---- */
+body.level-3 #game {
+  filter: contrast(1.12) saturate(1.08) brightness(0.96) hue-rotate(-8deg);
+}
+body.level-3 #game-frame::before {
+  background:
+    radial-gradient(ellipse 50% 30% at 50% 25%, rgba(255, 168, 80, 0.10), transparent 65%),
+    radial-gradient(circle at 80% 70%, rgba(255, 130, 40, 0.05), transparent 45%),
+    linear-gradient(0deg, rgba(30, 14, 4, 0.20), transparent 55%);
+}
+
+/* ---- Level 4: verdant overgrowth, dappled green light ---- */
+body.level-4 #game {
+  filter: contrast(1.08) saturate(1.14) brightness(1.01) hue-rotate(4deg);
+}
+body.level-4 #game-frame::before {
+  background:
+    radial-gradient(ellipse 70% 40% at 40% 15%, rgba(180, 255, 170, 0.08), transparent 65%),
+    radial-gradient(circle at 75% 80%, rgba(40, 80, 50, 0.14), transparent 60%),
+    linear-gradient(0deg, rgba(10, 20, 14, 0.22), transparent 50%);
+}
+
+/* ---- Level 5: cold blue dread, low visibility ---- */
+body.level-5 #game {
+  filter: contrast(1.14) saturate(0.88) brightness(0.92) hue-rotate(10deg);
+}
+body.level-5 #game-frame::before {
+  background:
+    radial-gradient(ellipse 45% 35% at 50% 45%, rgba(120, 180, 255, 0.06), transparent 68%),
+    radial-gradient(ellipse 100% 80% at 50% 50%, transparent 30%, rgba(0, 4, 14, 0.40) 100%),
+    linear-gradient(180deg, rgba(6, 10, 24, 0.28) 0%, transparent 50%);
+}
+
+/* ============================================================
    FULLSCREEN BUTTON + PSEUDO-FULLSCREEN MODE
    ============================================================ */
 
@@ -1940,12 +2052,10 @@ body.has-touch .btn-primary {
   transform: scale(0.94);
 }
 
-/* Make fullscreen button slightly bigger on touch devices */
+/* Hide the in-frame fullscreen button entirely on touch devices —
+   the fixed #mobile-fs-btn takes over so the player doesn't see two FS boxes. */
 body.has-touch #fullscreen-btn {
-  width: 46px;
-  height: 46px;
-  top: 10px;
-  right: 10px;
+  display: none !important;
 }
 
 /* When in pseudo-fullscreen, force game-root to take over EVERYTHING.
@@ -2083,6 +2193,12 @@ body.pseudo-fullscreen #orient-hint { display: none !important; }
     left: auto !important;
     bottom: auto !important;
     transform: none !important;
+  }
+  /* Give the HUD breathing room on the right so the gem counter / hint
+     text doesn't sit beneath the fixed fullscreen + hide-controls buttons.
+     Two 52px buttons + 10px gap + 8px edge inset = ~130px reserved zone. */
+  body.pseudo-fullscreen.portrait-native.has-touch #hud {
+    right: 132px !important;
   }
   /* Orient-hint and portrait nag should stay hidden in this mode. */
   body.pseudo-fullscreen.portrait-native #orient-hint { display: none !important; }
@@ -2257,7 +2373,8 @@ body.pseudo-fullscreen #fs-splash {
   position: fixed;
   top: max(8px, env(safe-area-inset-top, 8px));
   right: max(8px, env(safe-area-inset-right, 8px));
-  z-index: 2147483646;
+  /* Must exceed #game-root's stacking context (z:2147483647 in portrait-native). */
+  z-index: 2147483647;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2303,10 +2420,66 @@ body.pseudo-fullscreen #fs-splash {
   line-height: 1;
   margin-top: 1px;
 }
-/* Only show on touch devices \u2014 desktop already has the in-frame button. */
+/* Only show on touch devices — desktop already has the in-frame button. */
 body:not(.has-touch) #mobile-fs-btn {
   display: none;
 }
+
+/* ============================================================
+   Hide-controls toggle (touch devices only) — lets a player using
+   a connected keyboard on a touchscreen device hide the on-screen
+   gamepad to reclaim screen space.
+   ============================================================ */
+#hide-controls-btn {
+  position: fixed;
+  top: max(8px, env(safe-area-inset-top, 8px));
+  right: calc(max(8px, env(safe-area-inset-right, 8px)) + 62px); /* left of #mobile-fs-btn */
+  /* Must exceed #game-root's stacking context. */
+  z-index: 2147483647;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border-radius: 14px;
+  border: 2px solid rgba(126, 226, 168, 0.6);
+  background: linear-gradient(180deg, rgba(14, 22, 18, 0.92), rgba(6, 14, 10, 0.96));
+  color: #7ee2a8;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 9px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(126, 226, 168, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 120ms ease, background 160ms ease;
+}
+body.has-touch #hide-controls-btn { display: flex; }
+#hide-controls-btn:active { transform: scale(0.94); }
+#hide-controls-btn.is-hidden {
+  color: #e7c7ff;
+  border-color: rgba(186, 154, 255, 0.6);
+}
+.hide-controls-label {
+  font-size: 8.5px;
+  opacity: 0.85;
+  letter-spacing: 1.2px;
+  line-height: 1;
+  margin-top: 1px;
+}
+/* When user toggles controls off, hide the on-screen gamepad. */
+body.controls-hidden #touch-controls { display: none !important; }
+body.controls-hidden #touch-menu-btn { display: none !important; }
 /* While actually in real fullscreen on desktop, the in-frame button is fine \u2014
    hide the mobile one to avoid duplicates on a connected keyboard scenario. */
 #mobile-fs-btn.is-fs {

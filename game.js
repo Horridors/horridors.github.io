@@ -1027,6 +1027,8 @@ function tickHide() {
 function endLevel() {
   state.scene = 'end';
   endChase();
+  // L1 completed — clear in-progress so re-entry starts fresh
+  if (window.__levelInProgress) window.__levelInProgress[1] = false;
   const rewards = [];
   rewards.push('🪙 ' + state.coins + ' Corridor Tokens');
   if (state.notes.length > 0) rewards.push('📜 ' + state.notes.length + ' Notes Found');
@@ -1046,6 +1048,19 @@ function startPlay() {
   startAmbient();
   overlayTitle.classList.add('hidden');
   state.scene = 'play';
+  // If L1 was previously stopped (user left & came back), re-arm the loop.
+  if (!l1Running) {
+    l1Running = true;
+    lastT = performance.now();
+    requestAnimationFrame(loop);
+  }
+  // Ensure L1's own HUD is visible again on re-entry.
+  const hud = document.getElementById('hud');
+  if (hud) hud.classList.remove('hidden');
+  // Mark L1 as in-progress (used by Continue/Restart prompt)
+  if (window.__levelInProgress) window.__levelInProgress[1] = true;
+  // Per-level body class for CSS color grading / atmosphere.
+  try { if (window.__setActiveLevelClass) window.__setActiveLevelClass(1); } catch (e) {}
   speak('Welcome, little wanderer. Search every drawer.', 4000);
   setObjective('Explore. Something here opens other rooms.');
   registerL1Tasks();
@@ -1088,30 +1103,51 @@ document.getElementById('btn-start').addEventListener('click', () => {
 });
 
 // ---------- Level-select jump buttons (testing aid) ----------
-function jumpToLevel(n) {
-  // Hide title + any other overlays that might be up
+// Per-level progress map — flipped to true when real play begins, cleared on reset/complete.
+window.__levelInProgress = window.__levelInProgress || {1:false,2:false,3:false,4:false,5:false,6:false,7:false,8:false};
+
+// Stop every running level (used before switching or restarting)
+function __stopAllLevels() {
+  if (window.__horridorsL1 && window.__horridorsL1.stop) { try { window.__horridorsL1.stop(); } catch(e) {} }
+  for (const k of ['__horridorsL2','__horridorsL3','__horridorsL4','__horridorsL5','__horridorsL6','__horridorsL7','__horridorsL8']) {
+    const L = window[k]; if (L && L.stop) { try { L.stop(); } catch(e) {} }
+  }
+}
+
+function __hideGameplayOverlays() {
   ['overlay-title','overlay-end','overlay-caught','overlay-intro','overlay-mother',
    'overlay-l2-title','overlay-l2-end','overlay-l3-title','overlay-l3-end',
    'overlay-l4-title','overlay-l4-end','overlay-l5-intro','overlay-l5-end',
    'overlay-l6-intro','overlay-l6-end','overlay-l7-intro','overlay-l7-end',
    'overlay-l8-intro','overlay-l8-end','overlay-credits',
-   'overlay-note','overlay-notes'].forEach(id => {
+   'overlay-note','overlay-notes','overlay-resume'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.add('hidden');
   });
+}
+
+// Tag the <body> with the active level so CSS can tune per-level color grading,
+// atmosphere, and lighting. Cheap, fully reversible, no render-side work.
+function __setActiveLevelClass(n) {
+  const b = document.body;
+  for (let i = 1; i <= 8; i++) b.classList.remove('level-' + i);
+  if (n >= 1 && n <= 8) b.classList.add('level-' + n);
+}
+
+// Actually launch a level fresh (reset — shows intro/title, resets state).
+function __launchFresh(n) {
+  __hideGameplayOverlays();
+  __stopAllLevels();
+  const hud = document.getElementById('hud'); if (hud) hud.classList.add('hidden');
+  window.__levelInProgress[n] = true;
+  __setActiveLevelClass(n);
   if (n === 1) {
-    // Start L1 fresh
     ensureAudio();
+    // Full L1 reset so "Restart" truly starts fresh.
+    try { resetGame(); } catch(e) {}
     startPlay();
     return;
   }
-  // Stop L1 before handing off
-  if (window.__horridorsL1 && window.__horridorsL1.stop) window.__horridorsL1.stop();
-  // Stop any other level still running
-  for (const k of ['__horridorsL2','__horridorsL3','__horridorsL4','__horridorsL5','__horridorsL6','__horridorsL7','__horridorsL8']) {
-    const L = window[k]; if (L && L.stop) { try { L.stop(); } catch(e) {} }
-  }
-  const hud = document.getElementById('hud'); if (hud) hud.classList.add('hidden');
   if (n === 2 && window.__startLevel2) window.__startLevel2();
   else if (n === 3 && window.__startLevel3) window.__startLevel3();
   else if (n === 4 && window.__startLevel4) window.__startLevel4();
@@ -1120,10 +1156,111 @@ function jumpToLevel(n) {
   else if (n === 7 && window.__startLevel7) window.__startLevel7();
   else if (n === 8 && window.__startLevel8) window.__startLevel8();
 }
+
+// Resume: pick up where player left off, skipping title/intro + keeping state.
+function __launchResume(n) {
+  __hideGameplayOverlays();
+  // Stop OTHER levels, not the one we're resuming
+  for (let i = 1; i <= 8; i++) {
+    if (i === n) continue;
+    const L = window['__horridorsL' + i];
+    if (L && L.stop) { try { L.stop(); } catch(e) {} }
+  }
+  window.__levelInProgress[n] = true;
+  __setActiveLevelClass(n);
+  if (n === 1) {
+    ensureAudio();
+    // L1's startPlay now handles re-arming the loop if stopped
+    startPlay();
+    return;
+  }
+  const L = window['__horridorsL' + n];
+  if (L && L.resume) { L.resume(); return; }
+  // Fallback — no resume available, start fresh
+  __launchFresh(n);
+}
+
+function jumpToLevel(n) {
+  // If the level was already started AND not yet completed, offer Continue/Restart
+  if (window.__levelInProgress[n]) {
+    __showResumePrompt(n);
+    return;
+  }
+  __launchFresh(n);
+}
+// Expose for tests / external triggers.
+window.__jumpToLevel = jumpToLevel;
+window.__launchFresh = __launchFresh;
+window.__setActiveLevelClass = __setActiveLevelClass;
+
+function __showResumePrompt(n) {
+  __hideGameplayOverlays();
+  const overlay = document.getElementById('overlay-resume');
+  const titleEl = document.getElementById('resume-title');
+  if (titleEl) titleEl.textContent = 'LEVEL ' + n + ' — IN PROGRESS';
+  if (overlay) overlay.classList.remove('hidden');
+  const btnC = document.getElementById('btn-resume-continue');
+  const btnR = document.getElementById('btn-resume-restart');
+  const btnX = document.getElementById('btn-resume-cancel');
+  // Replace handlers cleanly by cloning nodes
+  const rebind = (id, handler) => {
+    const old = document.getElementById(id);
+    if (!old) return;
+    const fresh = old.cloneNode(true);
+    old.parentNode.replaceChild(fresh, old);
+    fresh.addEventListener('click', handler);
+  };
+  rebind('btn-resume-continue', () => { overlay.classList.add('hidden'); __launchResume(n); });
+  rebind('btn-resume-restart', () => { overlay.classList.add('hidden'); window.__levelInProgress[n] = false; __launchFresh(n); });
+  rebind('btn-resume-cancel', () => { overlay.classList.add('hidden'); window.__returnToTitle(); });
+}
+
 ['btn-jump-l1','btn-jump-l2','btn-jump-l3','btn-jump-l4','btn-jump-l5','btn-jump-l6','btn-jump-l7','btn-jump-l8'].forEach((id, i) => {
   const btn = document.getElementById(id);
   if (btn) btn.addEventListener('click', () => jumpToLevel(i + 1));
 });
+
+// Hook into play-start buttons so we know when real play (not just title/intro) begins.
+// This runs after the page loads so all level scripts have attached their own handlers.
+setTimeout(() => {
+  const hookBtn = (id, n) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      window.__levelInProgress[n] = true;
+      try { __setActiveLevelClass(n); } catch (e) {}
+    });
+  };
+  // Also tag L1 when the main Enter-the-Corridor button is clicked.
+  const btnStart = document.getElementById('btn-start');
+  if (btnStart) btnStart.addEventListener('click', () => {
+    try { __setActiveLevelClass(1); } catch (e) {}
+  });
+  hookBtn('btn-l2-start', 2);
+  hookBtn('btn-l3-start', 3);
+  hookBtn('btn-l4-start', 4);
+  hookBtn('btn-l5-start', 5);
+  hookBtn('btn-l5-begin', 5);
+  hookBtn('btn-l6-start', 6);
+  hookBtn('btn-l6-begin', 6);
+  hookBtn('btn-l7-start', 7);
+  hookBtn('btn-l7-begin', 7);
+  hookBtn('btn-l8-start', 8);
+  hookBtn('btn-l8-begin', 8);
+
+  // Clear the in-progress flag when a level's end overlay becomes visible.
+  // Uses MutationObserver on each overlay-lN-end element.
+  for (let n = 2; n <= 8; n++) {
+    const endEl = document.getElementById('overlay-l' + n + '-end');
+    if (!endEl) continue;
+    const mo = new MutationObserver(() => {
+      if (!endEl.classList.contains('hidden')) {
+        window.__levelInProgress[n] = false;
+      }
+    });
+    mo.observe(endEl, { attributes: true, attributeFilter: ['class'] });
+  }
+}, 0);
 
 // ---------- Return to title / level selection ----------
 // Exposed globally so any level, the X/menu touch button, or Escape key can call it.
@@ -1146,6 +1283,8 @@ window.__returnToTitle = function returnToTitle() {
     if (el) el.classList.add('hidden');
   });
   const hud = document.getElementById('hud'); if (hud) hud.classList.add('hidden');
+  // Clear per-level body class so title screen isn't tinted by a level's palette
+  try { __setActiveLevelClass(0); } catch (e) {}
   // Show the title / level-select
   const title = document.getElementById('overlay-title');
   if (title) title.classList.remove('hidden');

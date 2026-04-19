@@ -441,6 +441,19 @@
           </div>
         </div>
 
+        <!-- Overlay: Continue / Restart prompt when re-entering an in-progress level -->
+        <div id="overlay-resume" class="overlay hidden">
+          <div class="overlay-content" style="max-width:460px;">
+            <div class="end-title" id="resume-title" style="font-size:28px;">LEVEL IN PROGRESS</div>
+            <div class="end-sub" style="margin:10px 0 18px;">You already started this level. Pick up where you left off, or start over?</div>
+            <div class="end-buttons" style="display:flex;flex-direction:column;gap:10px;max-width:300px;margin:0 auto;">
+              <button id="btn-resume-continue" class="btn-primary">▶ Continue</button>
+              <button id="btn-resume-restart" class="btn-ghost">↺ Restart Level</button>
+              <button id="btn-resume-cancel" class="btn-ghost" style="opacity:0.7;">Back to Menu</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Overlay: Level 2 title -->
         <div id="overlay-l2-title" class="overlay hidden">
           <div class="overlay-content l2-title-panel">

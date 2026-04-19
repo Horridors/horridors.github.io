@@ -1951,9 +1951,11 @@
 
   // ---------- Start ----------
   function start() {
-    window.addEventListener('keydown', keydown);
-    window.addEventListener('keyup', keyup);
-    window.addEventListener('blur', blur);
+    if (!running) {
+      window.addEventListener('keydown', keydown);
+      window.addEventListener('keyup', keyup);
+      window.addEventListener('blur', blur);
+    }
     ensureAudio();
 
     // Hide ALL prior level UI
@@ -1968,9 +1970,38 @@
     state.scene = 'title';
     buildWorld();
 
-    running = true;
-    lastT = performance.now();
-    requestAnimationFrame(loop);
+    if (!running) {
+      running = true;
+      lastT = performance.now();
+      requestAnimationFrame(loop);
+    }
+  }
+
+  function stopLevel3() {
+    running = false;
+    try { window.removeEventListener('keydown', keydown); } catch (e) {}
+    try { window.removeEventListener('keyup', keyup); } catch (e) {}
+    try { window.removeEventListener('blur', blur); } catch (e) {}
+    try { keys.clear(); } catch (e) {}
+    try { stopAmbient(); } catch (e) {}
+  }
+
+  function resumeLevel3() {
+    ensureAudio();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    startAmbient();
+    if (!running) {
+      window.addEventListener('keydown', keydown);
+      window.addEventListener('keyup', keyup);
+      window.addEventListener('blur', blur);
+      running = true;
+      lastT = performance.now();
+      requestAnimationFrame(loop);
+    }
+    ['overlay-l3-title','overlay-l3-end','overlay-caught','overlay-mirror','overlay-code','overlay-comic']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
+    state.scene = 'play';
+    registerL3Tasks && registerL3Tasks();
   }
 
   // L3 title start button
@@ -2038,6 +2069,9 @@
     audioCtx: () => audioCtx,
     masterGain: () => masterGain,
     stopAmbient,
+    stop: stopLevel3,
+    resume: resumeLevel3,
+    isRunning: () => running,
     sfx: (n) => { try { sfx(n); } catch (e) {} },
   };
   // Debug

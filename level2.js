@@ -2335,10 +2335,12 @@
   }
 
   function start() {
-    // Wire input listeners
-    window.addEventListener('keydown', keydown);
-    window.addEventListener('keyup', keyup);
-    window.addEventListener('blur', blur);
+    // Guard against duplicate listeners / double RAF when re-entering
+    if (!running) {
+      window.addEventListener('keydown', keydown);
+      window.addEventListener('keyup', keyup);
+      window.addEventListener('blur', blur);
+    }
     ensureAudio();
 
     // Hide any Level 1 DOM UI that might still be visible
@@ -2351,13 +2353,45 @@
     document.getElementById('overlay-l2-title').classList.remove('hidden');
     state.scene = 'title';
 
-    // Begin loop
-    running = true;
-    lastT = performance.now();
-    requestAnimationFrame(loop);
+    // Begin loop (only if not already running)
+    if (!running) {
+      running = true;
+      lastT = performance.now();
+      requestAnimationFrame(loop);
+    }
 
     rebuildNotesList();
     refreshCollectiblesButton();
+  }
+
+  function stopLevel2() {
+    running = false;
+    try { window.removeEventListener('keydown', keydown); } catch (e) {}
+    try { window.removeEventListener('keyup', keyup); } catch (e) {}
+    try { window.removeEventListener('blur', blur); } catch (e) {}
+    try { keys.clear(); } catch (e) {}
+    try { stopAmbient(); } catch (e) {}
+  }
+
+  // Resume: pick up where the player left off — skip title + no state reset.
+  function resumeLevel2() {
+    ensureAudio();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    startAmbient();
+    // Wire listeners if not running
+    if (!running) {
+      window.addEventListener('keydown', keydown);
+      window.addEventListener('keyup', keyup);
+      window.addEventListener('blur', blur);
+      running = true;
+      lastT = performance.now();
+      requestAnimationFrame(loop);
+    }
+    // Hide all L2-related overlays so play is uninterrupted
+    ['overlay-l2-title','overlay-l2-end','overlay-caught','overlay-cipher','overlay-valve','overlay-note']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
+    state.scene = 'play';
+    registerL2Tasks && registerL2Tasks();
   }
 
   // Title start button
@@ -2476,6 +2510,9 @@
     audioCtx: () => audioCtx,
     masterGain: () => masterGain,
     stopAmbient,
+    stop: stopLevel2,
+    resume: resumeLevel2,
+    isRunning: () => running,
     sfx: (n) => { try { sfx(n); } catch (e) {} },
   };
   // Debug

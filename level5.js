@@ -1117,11 +1117,29 @@
     if (window.__startLevel6) window.__startLevel6();
   });
 
+  function resumeLevel5() {
+    ensureAudio();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    startAmbient();
+    if (!running) {
+      window.addEventListener('keydown', keydown);
+      window.addEventListener('keyup', keyup);
+      window.addEventListener('blur', blur);
+      running = true;
+      lastT = performance.now();
+      requestAnimationFrame(loop);
+    }
+    ['overlay-l5-intro','overlay-l5-end','overlay-caught']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
+  }
+
   // Export
   window.__startLevel5 = start;
   window.__horridorsL5 = {
     audioCtx: () => audioCtx,
     masterGain: () => masterGain,
+    resume: resumeLevel5,
+    isRunning: () => running,
     stop: () => {
       running = false; stopAmbient();
       window.removeEventListener('keydown', keydown);

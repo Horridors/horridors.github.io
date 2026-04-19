@@ -1244,9 +1244,27 @@
     window.location.reload();
   });
 
+  function resumeLevel8() {
+    ensureAudio();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    startAmbient();
+    if (!running) {
+      window.addEventListener('keydown', keydown);
+      window.addEventListener('keyup', keyup);
+      window.addEventListener('blur', blur);
+      running = true;
+      lastT = performance.now();
+      requestAnimationFrame(loop);
+    }
+    ['overlay-l8-intro','overlay-l8-end','overlay-caught']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
+  }
+
   window.__startLevel8 = start;
   window.__horridorsL8 = {
     audioCtx: () => audioCtx, masterGain: () => masterGain,
+    resume: resumeLevel8,
+    isRunning: () => running,
     stop: () => {
       running = false; stopAmbient();
       window.removeEventListener('keydown', keydown);

@@ -877,10 +877,28 @@
     if (window.__startLevel7) window.__startLevel7();
   });
 
+  function resumeLevel6() {
+    ensureAudio();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    startAmbient();
+    if (!running) {
+      window.addEventListener('keydown', keydown);
+      window.addEventListener('keyup', keyup);
+      window.addEventListener('blur', blur);
+      running = true;
+      lastT = performance.now();
+      requestAnimationFrame(loop);
+    }
+    ['overlay-l6-intro','overlay-l6-end','overlay-caught']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
+  }
+
   window.__startLevel6 = start;
   window.__horridorsL6 = {
     audioCtx: () => audioCtx,
     masterGain: () => masterGain,
+    resume: resumeLevel6,
+    isRunning: () => running,
     stop: () => {
       running = false; stopAmbient();
       window.removeEventListener('keydown', keydown);

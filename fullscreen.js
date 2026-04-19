@@ -310,10 +310,45 @@
     sync();
   }
 
+  // Hide-controls toggle: on touch devices, lets a player with a connected
+  // keyboard hide the on-screen gamepad to reclaim screen space.
+  function installHideControlsButton() {
+    const touch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    if (!touch) return;
+    if (document.getElementById('hide-controls-btn')) return;
+
+    const b = document.createElement('button');
+    b.id = 'hide-controls-btn';
+    b.type = 'button';
+    b.setAttribute('aria-label', 'Show or hide on-screen controls');
+    b.innerHTML = `
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+      <span class="hide-controls-label">Pad</span>
+    `;
+    document.body.appendChild(b);
+
+    function doToggle(e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      const hidden = document.body.classList.toggle('controls-hidden');
+      b.classList.toggle('is-hidden', hidden);
+      const lbl = b.querySelector('.hide-controls-label');
+      if (lbl) lbl.textContent = hidden ? 'Show' : 'Pad';
+    }
+    b.addEventListener('touchstart', doToggle, { passive: false });
+    b.addEventListener('click', doToggle);
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', installMobileFsButton, { once: true });
+    document.addEventListener('DOMContentLoaded', () => {
+      installMobileFsButton();
+      installHideControlsButton();
+    }, { once: true });
   } else {
     installMobileFsButton();
+    installHideControlsButton();
   }
 
   // ---------- Mobile Chrome URL-bar hiding (splash) ----------
