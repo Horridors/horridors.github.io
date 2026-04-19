@@ -1,6 +1,6 @@
 // Horridors — Service Worker (offline cache)
 // Cache-first strategy for static assets. Bump CACHE_VERSION on any meaningful change.
-const CACHE_VERSION = 'horridors-v14-hold-to-exit';
+const CACHE_VERSION = 'horridors-v15-scrollable-overlays';
 const ASSETS = [
   './',
   './index.html',
