@@ -25,16 +25,47 @@
   let current = 'easy';
   const listeners = [];
 
+  // --- Mid-run lock ------------------------------------------------------
+  // Certificate integrity rule: a certificate is only valid if all 8 levels
+  // are completed consecutively at the SAME difficulty. Switching tiers
+  // mid-run would let someone skate through the first half on Easy, then
+  // flip to Extreme just for the final level and claim an Extreme cert.
+  // To prevent that, changing difficulty mid-run requires confirmation and
+  // wipes the current tier's progress, dropping the player back to the
+  // title screen with L1 as the only unlocked level on the new tier.
+  function isAnyLevelInProgress() {
+    const lp = window.__levelInProgress;
+    if (!lp) return false;
+    for (let i = 1; i <= 8; i++) {
+      if (lp[i]) return true;
+    }
+    return false;
+  }
+  window.__isAnyLevelInProgress = isAnyLevelInProgress;
+
+  function applySet(id) {
+    if (!TIERS[id]) return false;
+    current = id;
+    for (const fn of listeners) { try { fn(TIERS[id]); } catch (e) {} }
+    // Update any HUD badges
+    updateBadges();
+    return true;
+  }
+
   const api = {
     get() { return TIERS[current]; },
     id()  { return current; },
-    set(id) {
+    // `force:true` bypasses the mid-run guard — used by the confirm-and-void flow.
+    set(id, opts) {
       if (!TIERS[id]) return false;
-      current = id;
-      for (const fn of listeners) { try { fn(TIERS[id]); } catch (e) {} }
-      // Update any HUD badges
-      updateBadges();
-      return true;
+      if (id === current) return true;
+      const force = !!(opts && opts.force);
+      if (!force && isAnyLevelInProgress()) {
+        // Caller tried to switch mid-run. Refuse silently — the picker UI
+        // shows a confirm dialog before calling set() with force.
+        return false;
+      }
+      return applySet(id);
     },
     tiers() { return Object.values(TIERS); },
     onChange(fn) { listeners.push(fn); },
@@ -88,11 +119,104 @@
       const btn = ev.target.closest('.difficulty-option');
       if (!btn) return;
       const tier = btn.getAttribute('data-tier');
+      if (tier === current) return;
+      // Mid-run guard: if any level is in progress, require confirmation.
+      // Accepting wipes progress on the current tier and returns to title.
+      if (isAnyLevelInProgress()) {
+        openChangeTierModal(tier);
+        return;
+      }
       api.set(tier);
       picker.querySelectorAll('.difficulty-option').forEach(b => {
         b.setAttribute('aria-checked', b.getAttribute('data-tier') === tier ? 'true' : 'false');
       });
     });
+    // Keep the picker aria-checked in sync when tier changes from other paths.
+    api.onChange((t) => {
+      picker.querySelectorAll('.difficulty-option').forEach(b => {
+        b.setAttribute('aria-checked', b.getAttribute('data-tier') === t.id ? 'true' : 'false');
+      });
+    });
+  }
+
+  // --- Mid-run confirm modal --------------------------------------------
+  // Styled to match the existing .overlay + .overlay-content look so no
+  // extra CSS is needed.
+  function ensureChangeTierModal() {
+    let m = document.getElementById('overlay-tier-change');
+    if (m) return m;
+    m = document.createElement('div');
+    m.id = 'overlay-tier-change';
+    m.className = 'overlay hidden';
+    m.innerHTML = `
+      <div class="overlay-content key-modal">
+        <div class="key-title">Change difficulty?</div>
+        <div class="key-sub" id="tier-change-body">
+          Certificates are only awarded for clearing all 8 levels at the same
+          difficulty. Switching now will reset your progress on this tier — you
+          will start again from Level 1.
+        </div>
+        <div class="key-buttons">
+          <button type="button" id="btn-tier-confirm" class="btn-primary">Reset & switch</button>
+          <button type="button" id="btn-tier-cancel" class="btn-ghost">Keep playing</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(m);
+    m.querySelector('#btn-tier-cancel').addEventListener('click', closeChangeTierModal);
+    return m;
+  }
+
+  let pendingTierId = null;
+  function openChangeTierModal(newTierId) {
+    pendingTierId = newTierId;
+    const m = ensureChangeTierModal();
+    const body = m.querySelector('#tier-change-body');
+    const fromName = TIERS[current] ? TIERS[current].name : current;
+    const toName   = TIERS[newTierId] ? TIERS[newTierId].name : newTierId;
+    body.innerHTML =
+      'Certificates are only awarded for clearing all 8 levels at the same ' +
+      'difficulty. Switching from <b>' + fromName + '</b> to <b>' + toName + '</b> ' +
+      'now will reset your progress on ' + fromName + ' and drop you back to ' +
+      'Level 1. Continue?';
+    // Rebind confirm so it captures the latest pendingTierId.
+    const confirmBtn = m.querySelector('#btn-tier-confirm');
+    const fresh = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(fresh, confirmBtn);
+    fresh.addEventListener('click', () => {
+      const target = pendingTierId;
+      closeChangeTierModal();
+      voidRunAndSwitch(target);
+    });
+    m.classList.remove('hidden');
+  }
+
+  function closeChangeTierModal() {
+    const m = document.getElementById('overlay-tier-change');
+    if (m) m.classList.add('hidden');
+    pendingTierId = null;
+  }
+
+  function voidRunAndSwitch(newTierId) {
+    // 1. Wipe progress on the tier we're leaving (keeps the consecutive-run
+    //    rule honest — no stitching two partial runs into one certificate).
+    try {
+      if (window.__resetTierProgress) {
+        window.__resetTierProgress(current);
+      }
+    } catch (e) {}
+    // 2. Clear in-progress flags so isAnyLevelInProgress() returns false next call.
+    if (window.__levelInProgress) {
+      for (let i = 1; i <= 8; i++) window.__levelInProgress[i] = false;
+    }
+    // 3. Return to title (stops every running level, shows title overlay).
+    try {
+      if (window.__returnToTitle) window.__returnToTitle();
+    } catch (e) {}
+    // 4. Actually switch the tier (force-bypass the mid-run guard — we just
+    //    cleared the run above, so the guard would now allow it anyway, but
+    //    force keeps this explicit).
+    applySet(newTierId);
   }
 
   if (document.readyState === 'loading') {

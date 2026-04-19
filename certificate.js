@@ -99,6 +99,17 @@
   }
   window.__unlockAllLevels = unlockAll;
 
+  // Wipe progress on a single tier. Used by the difficulty-switch guard to
+  // enforce "a certificate requires all 8 levels consecutively at the same
+  // difficulty": if the player switches tier mid-run, the tier they were on
+  // loses its in-progress run.
+  function resetTierProgress(tierId) {
+    if (!progressByTier[tierId]) return;
+    for (let i = 1; i <= 8; i++) progressByTier[tierId][i] = false;
+    refreshJumpButtonLocks();
+  }
+  window.__resetTierProgress = resetTierProgress;
+
   // Re-render jump-button locks whenever difficulty changes.
   setTimeout(() => {
     try {
@@ -331,8 +342,16 @@
       result.classList.remove('ok'); result.classList.add('err');
       return;
     }
-    // Apply: set difficulty, unlock all, close.
-    try { window.__difficulty && window.__difficulty.set(res.tierId); } catch (e) {}
+    // Guard: if a run is in progress, a cert-key restore would silently switch
+    // tier mid-run. Refuse it — player must exit to title first.
+    if (window.__isAnyLevelInProgress && window.__isAnyLevelInProgress()) {
+      result.textContent = 'Finish or quit this run before restoring a key.';
+      result.classList.remove('ok'); result.classList.add('err');
+      return;
+    }
+    // Apply: set difficulty (force past the guard — we just verified no run is
+    // in progress), unlock all, close.
+    try { window.__difficulty && window.__difficulty.set(res.tierId, { force: true }); } catch (e) {}
     unlockAll();
     result.textContent = 'Unlocked — welcome back, ' + res.name + '.';
     result.classList.remove('err'); result.classList.add('ok');
