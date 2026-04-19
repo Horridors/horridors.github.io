@@ -576,11 +576,12 @@
       }
     }
 
+    const _dL4 = (window.__difficulty && window.__difficulty.get()) || { speedMul: 1 };
     if (expression.state === 'charge' || expression.state === 'blink') {
       const tx = player.x - expression.x;
       const ty = player.y - expression.y;
       const len = Math.hypot(tx, ty) || 1;
-      const sp = expression.state === 'blink' ? 200 : expression.speed;
+      const sp = (expression.state === 'blink' ? 200 : expression.speed) * _dL4.speedMul;
       moveWithCollision(expression, (tx / len) * sp * dt, (ty / len) * sp * dt);
     } else if (expression.state === 'recoil') {
       const tx = expression.x - player.x;
@@ -630,7 +631,9 @@
       const tx = player.x - exlena.x;
       const ty = player.y - exlena.y;
       const len = Math.hypot(tx, ty) || 1;
-      moveWithCollision(exlena, (tx / len) * exlena.speed * dt, (ty / len) * exlena.speed * dt);
+      const _dE = (window.__difficulty && window.__difficulty.get()) || { speedMul: 1 };
+      const exSp = exlena.speed * _dE.speedMul;
+      moveWithCollision(exlena, (tx / len) * exSp * dt, (ty / len) * exSp * dt);
     }
 
     if (rectIntersect(player, exlena) && exlena.state === 'charge') {

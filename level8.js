@@ -628,7 +628,8 @@
     const nx = dx / d, ny = dy / d;
     // Apply velocity (knockback decays)
     e.vx *= 0.86; e.vy *= 0.86;
-    const sp = def.speed;
+    const _dL8 = (window.__difficulty && window.__difficulty.get()) || { speedMul: 1, aggroMul: 1 };
+    const sp = def.speed * _dL8.speedMul;
     const moveX = nx * sp * dt + e.vx * dt;
     const moveY = ny * sp * dt + e.vy * dt;
     moveWithCollision(e, moveX, moveY);
@@ -644,7 +645,7 @@
         if (dd < bd) { bd = dd; best = a; }
       }
       if (best && bd < 56) {
-        e.cd = 1.1 + Math.random() * 0.5;
+        e.cd = (1.1 + Math.random() * 0.5) / Math.max(0.5, _dL8.aggroMul);
         if (best === player) damagePlayer(1);
         else { best.hurtT = 0.3; }
         sfx('zap');
@@ -654,14 +655,14 @@
         const nxs = bx / bd2, nys = by / bd2;
         for (const ang of [0, 0.31, -0.31]) {
           const cs = Math.cos(ang), sn = Math.sin(ang);
-          projectiles.push({ x: cx, y: cy, vx: (nxs*cs - nys*sn) * 300, vy: (nxs*sn + nys*cs) * 300, life: 1.2, r: 8, team: 'enemy', damage: 1 });
+          projectiles.push({ x: cx, y: cy, vx: (nxs*cs - nys*sn) * 300 * _dL8.speedMul, vy: (nxs*sn + nys*cs) * 300 * _dL8.speedMul, life: 1.2, r: 8, team: 'enemy', damage: 1 });
         }
         sfx('zap');
         e.cd = 1.6 + Math.random() * 0.6;
       } else if (bd < 300 && e.kind === 'expre') {
         // Ex Preshon: heavy slow shadow orb (bigger radius, slower, more damage)
         const bx = tgtX - cx, by = tgtY - cy; const bd2 = Math.hypot(bx, by) || 1;
-        projectiles.push({ x: cx, y: cy, vx: bx/bd2 * 180, vy: by/bd2 * 180, life: 2.0, r: 14, team: 'enemy', damage: 2 });
+        projectiles.push({ x: cx, y: cy, vx: bx/bd2 * 180 * _dL8.speedMul, vy: by/bd2 * 180 * _dL8.speedMul, life: 2.0, r: 14, team: 'enemy', damage: 2 });
         sfx('zap');
         e.cd = 2.2 + Math.random() * 0.8;
       } else if (bd < 340 && e.kind === 'exlena') {
@@ -669,7 +670,7 @@
         const baseAng = Math.atan2(tgtY - cy, tgtX - cx);
         for (let i = -2; i <= 2; i++) {
           const a = baseAng + i * 0.22;
-          projectiles.push({ x: cx, y: cy, vx: Math.cos(a) * 280, vy: Math.sin(a) * 280, life: 1.3, r: 7, team: 'enemy', damage: 1 });
+          projectiles.push({ x: cx, y: cy, vx: Math.cos(a) * 280 * _dL8.speedMul, vy: Math.sin(a) * 280 * _dL8.speedMul, life: 1.3, r: 7, team: 'enemy', damage: 1 });
         }
         sfx('zap');
         e.cd = 2.4 + Math.random() * 0.8;
@@ -683,7 +684,7 @@
       } else if (bd < 200 && e.kind === 'drip') {
         // Drip: fast dart
         const bx = tgtX - cx, by = tgtY - cy; const bd2 = Math.hypot(bx, by) || 1;
-        projectiles.push({ x: cx, y: cy, vx: bx/bd2 * 340, vy: by/bd2 * 340, life: 0.9, r: 5, team: 'enemy', damage: 1 });
+        projectiles.push({ x: cx, y: cy, vx: bx/bd2 * 340 * _dL8.speedMul, vy: by/bd2 * 340 * _dL8.speedMul, life: 0.9, r: 5, team: 'enemy', damage: 1 });
         sfx('zap');
         e.cd = 1.2 + Math.random() * 0.5;
       } else {

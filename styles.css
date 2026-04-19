@@ -2577,3 +2577,91 @@ body.has-touch #touch-menu-btn { display: block; }
 
 /* No overlay-based fade rule — JS guards the hold trigger when the title overlay
    is visible, so an accidental hold on the menu screen is harmless. */
+
+/* ---------- Difficulty picker (title screen) ---------- */
+.difficulty-picker {
+  margin: 14px auto 10px;
+  padding: 10px 12px;
+  max-width: 420px;
+  background: rgba(20, 14, 28, 0.55);
+  border: 1px solid rgba(150, 110, 200, 0.25);
+  border-radius: 12px;
+  text-align: center;
+}
+.difficulty-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #c9b8e4;
+  opacity: 0.8;
+  margin-bottom: 6px;
+}
+.difficulty-options {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.difficulty-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 4px;
+  background: rgba(30, 22, 44, 0.7);
+  border: 1px solid rgba(150, 110, 200, 0.22);
+  border-radius: 10px;
+  color: #dfd4f0;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 140ms ease;
+  min-height: 48px;
+}
+.difficulty-option:hover {
+  background: rgba(50, 38, 72, 0.85);
+  border-color: rgba(180, 140, 230, 0.45);
+}
+.difficulty-option .d-name {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.difficulty-option .d-age {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  opacity: 0.65;
+  text-transform: uppercase;
+}
+.difficulty-option[aria-checked="true"] {
+  background: linear-gradient(135deg, rgba(120, 70, 200, 0.55), rgba(180, 60, 120, 0.45));
+  border-color: rgba(230, 180, 255, 0.75);
+  color: #ffffff;
+  box-shadow: 0 0 0 1px rgba(230, 180, 255, 0.35) inset,
+              0 4px 14px rgba(120, 60, 200, 0.35);
+}
+.difficulty-option[data-tier="easy"][aria-checked="true"]    { background: linear-gradient(135deg, #2d8a6b, #1f5a4a); border-color: #7fe6c5; }
+.difficulty-option[data-tier="medium"][aria-checked="true"]  { background: linear-gradient(135deg, #7a6a2a, #534620); border-color: #f0d887; }
+.difficulty-option[data-tier="hard"][aria-checked="true"]    { background: linear-gradient(135deg, #a04530, #6a2c1f); border-color: #ff9c7a; }
+.difficulty-option[data-tier="extreme"][aria-checked="true"] { background: linear-gradient(135deg, #6a1025, #3a0814); border-color: #ff5070; box-shadow: 0 0 0 1px rgba(255,80,112,0.5) inset, 0 0 20px rgba(255,40,70,0.4); }
+
+/* Small HUD badge showing current difficulty */
+.difficulty-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  margin-left: 6px;
+  border-radius: 6px;
+  background: rgba(20, 14, 28, 0.7);
+  border: 1px solid rgba(150, 110, 200, 0.35);
+  color: #dfd4f0;
+  vertical-align: middle;
+}
+[data-difficulty-badge][data-tier="easy"]    { color: #7fe6c5; border-color: rgba(127, 230, 197, 0.45); }
+[data-difficulty-badge][data-tier="medium"]  { color: #f0d887; border-color: rgba(240, 216, 135, 0.45); }
+[data-difficulty-badge][data-tier="hard"]    { color: #ff9c7a; border-color: rgba(255, 156, 122, 0.5); }
+[data-difficulty-badge][data-tier="extreme"] { color: #ff5070; border-color: rgba(255, 80, 112, 0.6); text-shadow: 0 0 6px rgba(255,60,90,0.5); }

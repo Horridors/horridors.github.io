@@ -632,19 +632,20 @@
       }
     }
 
+    const _dL3 = (window.__difficulty && window.__difficulty.get()) || { speedMul: 1 };
     if (expression.state === 'charge') {
       // Pathfind in straight line toward player using simple axis-by-axis
       const tx = player.x - expression.x;
       const ty = player.y - expression.y;
       const len = Math.hypot(tx, ty) || 1;
-      const sp = expression.speed;
+      const sp = expression.speed * _dL3.speedMul;
       moveWithCollision(expression, (tx / len) * sp * dt, (ty / len) * sp * dt);
     } else if (expression.state === 'blink') {
       // During blink, he creeps a bit faster
       const tx = player.x - expression.x;
       const ty = player.y - expression.y;
       const len = Math.hypot(tx, ty) || 1;
-      const sp = 220;
+      const sp = 220 * _dL3.speedMul;
       moveWithCollision(expression, (tx / len) * sp * dt, (ty / len) * sp * dt);
     } else if (expression.state === 'recoil') {
       // Back AWAY from player slowly — buys the player time to escape

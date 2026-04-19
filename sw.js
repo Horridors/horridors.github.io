@@ -1,6 +1,6 @@
 // Horridors — Service Worker (offline cache)
 // Cache-first strategy for static assets. Bump CACHE_VERSION on any meaningful change.
-const CACHE_VERSION = 'horridors-v19-interroom-wall-seal';
+const CACHE_VERSION = 'horridors-v20-difficulty-tiers';
 const ASSETS = [
   './',
   './index.html',
@@ -17,6 +17,7 @@ const ASSETS = [
   './shared-wallet.js',
   './shared-sprites.js',
   './shared-touch.js',
+  './difficulty.js',
   './fullscreen.js',
   './pwa-register.js',
   './game.js',

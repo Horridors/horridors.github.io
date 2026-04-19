@@ -2004,14 +2004,17 @@
         if (ddist > 520) {
           drip.active = false;
           drip.fleeing = false;
-          drip.respawnCooldown = 8; // seconds before he may return
+          // Aggression shortens respawn cooldown (Extreme = ~5s, Easy = ~11s)
+          const _d3 = (window.__difficulty && window.__difficulty.get()) || { aggroMul: 1 };
+          drip.respawnCooldown = 8 / Math.max(0.5, _d3.aggroMul);
           speak('The Drip slinks back into the pipes.', 2600);
         }
         // No damage while fleeing
       } else {
         // Normal chase behavior
         drip.fleeing = false;
-        const targetSpeed = lit ? DRIP_SPEED_LIT : DRIP_SPEED_DARK;
+        const _d2 = (window.__difficulty && window.__difficulty.get()) || { speedMul: 1, aggroMul: 1 };
+        const targetSpeed = (lit ? DRIP_SPEED_LIT : DRIP_SPEED_DARK) * _d2.speedMul;
         let mvx = ddx / ddist, mvy = ddy / ddist;
         if (!isInHub(px, py)) {
           // Aim at nearest hub point (simple: clamp target to HUB horizontal strip)

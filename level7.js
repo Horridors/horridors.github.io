@@ -391,7 +391,8 @@
     const d = Math.hypot(dx, dy) || 1;
     // Faster base zap, and throw a spread (3 projectiles: straight + ±15° angles)
     const baseVx = dx / d, baseVy = dy / d;
-    const SPEED = 240;
+    const _dL7 = (window.__difficulty && window.__difficulty.get()) || { speedMul: 1 };
+    const SPEED = 240 * _dL7.speedMul;
     const angles = [0, 0.26, -0.26]; // center + ~15° spread
     for (const a of angles) {
       const cs = Math.cos(a), sn = Math.sin(a);
@@ -415,13 +416,14 @@
     // Boss movement — slow patrol L/R, if not defeated
     state.boss.bob = Math.sin(performance.now() / 500) * 5;
     if (state.boss.state === 'ready') {
-      state.boss.x += state.boss.vx * 70 * dt;
+      const _dL7m = (window.__difficulty && window.__difficulty.get()) || { speedMul: 1, aggroMul: 1 };
+      state.boss.x += state.boss.vx * 70 * _dL7m.speedMul * dt;
       if (state.boss.x < state.boss.patrolMin) { state.boss.x = state.boss.patrolMin; state.boss.vx = 1; }
       if (state.boss.x > state.boss.patrolMax) { state.boss.x = state.boss.patrolMax; state.boss.vx = -1; }
       bossPunchCd -= dt;
       if (bossPunchCd <= 0) {
         bossPunch();
-        bossPunchCd = 1.6 + Math.random() * 1.0;
+        bossPunchCd = (1.6 + Math.random() * 1.0) / Math.max(0.5, _dL7m.aggroMul);
       }
     }
 

@@ -619,14 +619,23 @@ const player = {
   walkPhase: 0,
 };
 
+const MONSTER_BASE_SPEED = 117;
+const HOLLOW_BASE_SPEED = 70;
+
 const monster = {
-  active: false, x: 0, y: 0, w: 26, h: 26, speed: 117, kind: 'grin',
+  active: false, x: 0, y: 0, w: 26, h: 26, speed: MONSTER_BASE_SPEED, kind: 'grin',
 };
 
 // Hollow (library lurker) — appears once player has been in library for >3s without moving much
 const hollow = {
-  active: false, x: 0, y: 0, w: 24, h: 28, speed: 70, alertness: 0,
+  active: false, x: 0, y: 0, w: 24, h: 28, speed: HOLLOW_BASE_SPEED, alertness: 0,
 };
+
+// Read difficulty multipliers at runtime (difficulty may change between runs).
+function _diff() {
+  try { return window.__difficulty && window.__difficulty.get(); } catch (e) {}
+  return { speedMul: 1, aggroMul: 1, oneHit: false };
+}
 
 // ---------- Collision ----------
 function aabb(a, b) {
@@ -921,6 +930,7 @@ function startChase() {
   monster.active = true;
   monster.x = 400; monster.y = 990; // far behind player initially
   monster.kind = 'grin';
+  monster.speed = MONSTER_BASE_SPEED * _diff().speedMul;
   document.getElementById('chase-bar').classList.remove('hidden');
   sfx('alarm');
   setTimeout(()=>sfx('scream'), 400);
@@ -988,9 +998,12 @@ function tickHollow(dt) {
   const inLib = player.x > LR.left && player.x < LR.right && player.y > LR.top && player.y < LR.bottom;
   if (inLib) {
     libraryEnterT += dt;
-    if (!hollow.active && libraryEnterT > 4) {
+    // Aggression shortens the activation time; Extreme triggers nearly immediately.
+    const actDelay = 4 / Math.max(0.5, _diff().aggroMul);
+    if (!hollow.active && libraryEnterT > actDelay) {
       hollow.active = true;
       hollow.x = LR.left + 60; hollow.y = LR.top + 60;
+      hollow.speed = HOLLOW_BASE_SPEED * _diff().speedMul;
       sfx('whisper');
       speak('Something is in here with you.', 3000);
     }
@@ -1196,7 +1209,14 @@ function __launchResume(n) {
 }
 
 function jumpToLevel(n) {
-  // If the level was already started AND not yet completed, offer Continue/Restart
+  // Extreme difficulty: no checkpoints — every entry launches fresh. Clear any
+  // progress flag so the Continue prompt never appears.
+  if (_diff().oneHit) {
+    window.__levelInProgress[n] = false;
+    __launchFresh(n);
+    return;
+  }
+  // Otherwise, if the level was already started AND not yet completed, offer Continue/Restart
   if (window.__levelInProgress[n]) {
     __showResumePrompt(n);
     return;

@@ -349,7 +349,8 @@
     const ty = player.y + player.h/2;
     const dx = tx - sx, dy = ty - sy;
     const d = Math.hypot(dx, dy) || 1;
-    const spd = 210;
+    const _dL6 = (window.__difficulty && window.__difficulty.get()) || { speedMul: 1 };
+    const spd = 210 * _dL6.speedMul;
     zaps.push({ x: sx, y: sy, vx: dx/d * spd, vy: dy/d * spd, life: 4, r: 10 });
     sfx('zap');
   }
@@ -439,8 +440,10 @@
     state.socky.zapCd -= dt;
     if (state.socky.zapCd <= 0 && !state.socky.defeated) {
       fireZap();
-      // Faster as more plugs pulled (he's angrier) — min 0.8s
-      state.socky.zapCd = Math.max(0.75, 2.1 - state.pluggedCount * 0.35);
+      // Faster as more plugs pulled (he's angrier) — min 0.8s, scaled by aggression
+      const _dAgg = (window.__difficulty && window.__difficulty.get()) || { aggroMul: 1 };
+      const baseCd = Math.max(0.75, 2.1 - state.pluggedCount * 0.35);
+      state.socky.zapCd = baseCd / Math.max(0.5, _dAgg.aggroMul);
     }
 
     // Input — move
