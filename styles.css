@@ -2109,3 +2109,67 @@ body.pseudo-fullscreen #fs-splash {
      trigger real fullscreen. */
   z-index: 2147483647;
 }
+
+/* ============================================================
+   Mobile fullscreen button \u2014 pinned to the real viewport corner
+   (not inside the rotated #game-frame). Always visible on touch.
+   ============================================================ */
+#mobile-fs-btn {
+  position: fixed;
+  top: max(8px, env(safe-area-inset-top, 8px));
+  right: max(8px, env(safe-area-inset-right, 8px));
+  z-index: 2147483646;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border-radius: 14px;
+  border: 2px solid rgba(255, 217, 74, 0.7);
+  background:
+    linear-gradient(180deg, rgba(30, 14, 22, 0.92), rgba(14, 6, 12, 0.96));
+  color: #ffd94a;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 9px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 217, 74, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 120ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+#mobile-fs-btn:active {
+  transform: scale(0.94);
+  background: linear-gradient(180deg, rgba(60, 28, 40, 0.96), rgba(30, 14, 22, 0.98));
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+#mobile-fs-btn.is-fs {
+  color: #ffb0b0;
+  border-color: rgba(255, 140, 140, 0.7);
+}
+.mobile-fs-label {
+  font-size: 8.5px;
+  opacity: 0.85;
+  letter-spacing: 1.2px;
+  line-height: 1;
+  margin-top: 1px;
+}
+/* Only show on touch devices \u2014 desktop already has the in-frame button. */
+body:not(.has-touch) #mobile-fs-btn {
+  display: none;
+}
+/* While actually in real fullscreen on desktop, the in-frame button is fine \u2014
+   hide the mobile one to avoid duplicates on a connected keyboard scenario. */
+#mobile-fs-btn.is-fs {
+  opacity: 0.7;
+}

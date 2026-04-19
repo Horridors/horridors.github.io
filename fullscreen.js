@@ -105,11 +105,30 @@
     if (canRealFullscreen()) {
       const target = document.documentElement;
       requestReal(target).then(() => {
-        // Real FS succeeded — drop pseudo if it was on (avoid double-rotation)
-        if (pseudoOn) exitPseudo();
+        // Real FS succeeded. Try to lock orientation to landscape.
+        let locked = false;
+        try {
+          if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').then(() => {
+              locked = true;
+              // Orientation will physically rotate to landscape, so pseudo
+              // rotation is no longer needed.
+              if (pseudoOn) exitPseudo();
+            }).catch(() => {
+              // Lock failed — user is stuck in portrait. Keep pseudo
+              // rotation active so the game still looks landscape.
+              if (!pseudoOn && window.innerHeight > window.innerWidth) {
+                enterPseudo();
+              }
+            });
+          }
+        } catch (_) {}
+        // If no orientation API, rely on current state.
+        if (!locked && !pseudoOn && window.innerHeight > window.innerWidth) {
+          enterPseudo();
+        }
       }).catch((err) => {
         console.warn('[Horridors] real fullscreen request failed, falling back to pseudo:', err);
-        // If pseudo is already on (mobile portrait auto-rotate), keep it.
         if (!pseudoOn) enterPseudo();
       });
       return;
@@ -219,7 +238,62 @@
     window.addEventListener(evt, autoPrompt, { once: true, passive: true });
   });
 
-  // ---------- Mobile Chrome URL-bar hiding ----------
+  // ---------- Mobile fullscreen button (persistent, fixed position) ----------
+  // A second fullscreen button that sits in the ACTUAL viewport corner
+  // (not inside the rotated #game-frame). The in-frame button gets buried
+  // under Chrome's URL bar / rotated off-screen on mobile, so we need a
+  // mobile-specific one anchored to the real viewport top-right.
+  function installMobileFsButton() {
+    const touch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    if (!touch) return;
+    if (!canRealFullscreen()) return;
+    if (document.getElementById('mobile-fs-btn')) return;
+
+    const b = document.createElement('button');
+    b.id = 'mobile-fs-btn';
+    b.type = 'button';
+    b.setAttribute('aria-label', 'Toggle fullscreen');
+    b.innerHTML = `
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 9V5a1 1 0 0 1 1-1h4"/>
+        <path d="M20 9V5a1 1 0 0 0-1-1h-4"/>
+        <path d="M4 15v4a1 1 0 0 0 1 1h4"/>
+        <path d="M20 15v4a1 1 0 0 1-1 1h-4"/>
+      </svg>
+      <span class="mobile-fs-label">Full</span>
+    `;
+    document.body.appendChild(b);
+
+    function doToggle(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggle();
+    }
+    b.addEventListener('touchstart', doToggle, { passive: false });
+    b.addEventListener('click', doToggle);
+
+    // Update label/icon when we enter/exit real fullscreen
+    function sync() {
+      if (inRealFullscreen()) {
+        b.classList.add('is-fs');
+        b.querySelector('.mobile-fs-label').textContent = 'Exit';
+      } else {
+        b.classList.remove('is-fs');
+        b.querySelector('.mobile-fs-label').textContent = 'Full';
+      }
+    }
+    document.addEventListener('fullscreenchange', sync);
+    document.addEventListener('webkitfullscreenchange', sync);
+    sync();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', installMobileFsButton, { once: true });
+  } else {
+    installMobileFsButton();
+  }
+
+  // ---------- Mobile Chrome URL-bar hiding (splash) ----------
   // On Samsung/Android Chrome the URL bar stays visible because pseudo-
   // fullscreen disables scrolling (so the auto-hide never triggers). The
   // ONLY way to truly hide it is the Fullscreen API — which requires a
@@ -272,13 +346,21 @@
 
       // Target documentElement — most compatible on Android Chrome.
       requestReal(document.documentElement).then(() => {
-        // Real fullscreen engaged. Drop pseudo if it was on to avoid
-        // the double-rotation (real FS handles orientation itself).
-        if (pseudoOn) exitPseudo();
-        // Try to lock orientation to landscape now that we're in real FS.
+        // Real fullscreen engaged. Try orientation lock.
         try {
           if (screen.orientation && screen.orientation.lock) {
-            screen.orientation.lock('landscape').catch(() => {});
+            screen.orientation.lock('landscape').then(() => {
+              if (pseudoOn) exitPseudo();
+            }).catch(() => {
+              // Lock denied — keep pseudo rotation so it still looks
+              // landscape while the phone is held in portrait.
+              if (!pseudoOn && window.innerHeight > window.innerWidth) {
+                enterPseudo();
+              }
+            });
+          } else if (pseudoOn && window.innerWidth > window.innerHeight) {
+            // Already landscape — pseudo not needed.
+            exitPseudo();
           }
         } catch (_) {}
       }).catch((err) => {

@@ -2,11 +2,26 @@
 // Registers the service worker (enables offline install) and handles
 // pausing audio/input when the tab is backgrounded.
 (function () {
-  // Register service worker
+  // Register service worker. When a new version is activated, auto-reload
+  // ONCE so the new JS/CSS takes effect immediately (instead of on the next
+  // manual refresh).
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch((err) => {
+      navigator.serviceWorker.register('./sw.js').then((reg) => {
+        // Check for updates every time the page is shown.
+        if (reg.update) reg.update().catch(() => {});
+      }).catch((err) => {
         console.warn('[PWA] SW registration failed', err);
+      });
+
+      // When a different SW takes control (new version activated),
+      // reload once so the live page picks up the new code.
+      let reloading = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (reloading) return;
+        reloading = true;
+        // Small delay so any final queued writes land before reload.
+        setTimeout(() => window.location.reload(), 100);
       });
     });
   }

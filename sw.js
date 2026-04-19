@@ -1,6 +1,6 @@
 // Horridors — Service Worker (offline cache)
 // Cache-first strategy for static assets. Bump CACHE_VERSION on any meaningful change.
-const CACHE_VERSION = 'horridors-v8-fullscreen-splash';
+const CACHE_VERSION = 'horridors-v9-network-first';
 const ASSETS = [
   './',
   './index.html',
@@ -53,11 +53,30 @@ self.addEventListener('fetch', (event) => {
   // Only handle same-origin
   if (url.origin !== self.location.origin) return;
 
+  // Network-first for HTML / JS / CSS so code updates apply immediately
+  // when the user is online. Falls back to cache when offline.
+  // Images and other static assets use cache-first for speed.
+  const path = url.pathname;
+  const isCode = /\.(html|js|css|webmanifest)$/.test(path) || path === '/' || path.endsWith('/');
+
+  if (isCode) {
+    event.respondWith(
+      fetch(req).then((res) => {
+        if (res && res.status === 200 && res.type === 'basic') {
+          const copy = res.clone();
+          caches.open(CACHE_VERSION).then((c) => c.put(req, copy));
+        }
+        return res;
+      }).catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  // Cache-first for images, fonts, icons
   event.respondWith(
     caches.match(req).then((cached) => {
       if (cached) return cached;
       return fetch(req).then((res) => {
-        // Cache successful GETs for next time
         if (res && res.status === 200 && res.type === 'basic') {
           const copy = res.clone();
           caches.open(CACHE_VERSION).then((c) => c.put(req, copy));
