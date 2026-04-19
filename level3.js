@@ -1232,13 +1232,20 @@
   }
   function drawPlayer() {
     if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
+      ctx.save();
+      ctx.translate(-cam.x, -cam.y);
       window.HorridorsSprites.drawCharacter(ctx, 'chester', player.x + player.w/2, player.y + player.h + 8, (player.facing !== undefined ? (Math.cos(player.facing) >= 0 ? 1 : -1) : 1), 56);
+      ctx.restore();
       return;
     }
 }
   function drawExpression() {
+    if (!expression.spawned) return;
     if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
+      ctx.save();
+      ctx.translate(-cam.x, -cam.y);
       window.HorridorsSprites.drawCharacter(ctx, 'expreshon', expression.x + expression.w/2, expression.y + expression.h + 6, 1, 84);
+      ctx.restore();
       return;
     }
 }

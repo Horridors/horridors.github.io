@@ -1160,8 +1160,10 @@
   }
 
   function drawSquidley() {
+    if (!squidley.active) return;
     if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
-      window.HorridorsSprites.drawCharacter(ctx, 'inkybin', (squidley.x + squidley.w/2) - camera.x, (squidley.y + squidley.h + 6) - camera.y, 1, 52);
+      const bob = Math.sin(squidley.bob || 0) * 3;
+      window.HorridorsSprites.drawCharacter(ctx, 'inkybin', squidley.x - camera.x, (squidley.y + bob) - camera.y, 1, 52);
       return;
     }
 }
@@ -1224,8 +1226,9 @@
 }
 
   function drawDrip() {
+    if (!drip.active) return;
     if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
-      window.HorridorsSprites.drawCharacter(ctx, 'drip', (drip.x + drip.w/2) - camera.x, (drip.y + drip.h + 6) - camera.y, 1, 54);
+      window.HorridorsSprites.drawCharacter(ctx, 'drip', drip.x - camera.x, drip.y - camera.y, 1, 54);
       return;
     }
 }
