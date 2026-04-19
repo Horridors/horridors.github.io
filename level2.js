@@ -1161,7 +1161,7 @@
 
   function drawSquidley() {
     if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
-      window.HorridorsSprites.drawCharacter(ctx, 'inkybin', squidley.x + squidley.w/2, squidley.y + squidley.h + 6, 1, 52);
+      window.HorridorsSprites.drawCharacter(ctx, 'inkybin', (squidley.x + squidley.w/2) - camera.x, (squidley.y + squidley.h + 6) - camera.y, 1, 52);
       return;
     }
 }
@@ -1174,7 +1174,7 @@
     if (!socky || !socky.active) return;
     if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
       const bobY = Math.sin(socky.bob || 0) * 4;
-      window.HorridorsSprites.drawCharacter(ctx, 'sockyshok', socky.x, socky.y + bobY, 1, 56);
+      window.HorridorsSprites.drawCharacter(ctx, 'sockyshok', socky.x - camera.x, (socky.y + bobY) - camera.y, 1, 56);
       return;
     }
   }
@@ -1218,14 +1218,14 @@
 
   function drawPlayer() {
     if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
-      window.HorridorsSprites.drawCharacter(ctx, 'chester', player.x + player.w/2, player.y + player.h + 8, (player.facing !== undefined ? (Math.cos(player.facing) >= 0 ? 1 : -1) : 1), 56);
+      window.HorridorsSprites.drawCharacter(ctx, 'chester', (player.x + player.w/2) - camera.x, (player.y + player.h + 8) - camera.y, (player.facing !== undefined ? (Math.cos(player.facing) >= 0 ? 1 : -1) : 1), 56);
       return;
     }
 }
 
   function drawDrip() {
     if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
-      window.HorridorsSprites.drawCharacter(ctx, 'drip', drip.x + drip.w/2, drip.y + drip.h + 6, 1, 54);
+      window.HorridorsSprites.drawCharacter(ctx, 'drip', (drip.x + drip.w/2) - camera.x, (drip.y + drip.h + 6) - camera.y, 1, 54);
       return;
     }
 }
