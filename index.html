@@ -549,8 +549,17 @@
                       <stop offset="0%" stop-color="#3a2a1a"/>
                       <stop offset="100%" stop-color="#0a0604"/>
                     </radialGradient>
+                    <radialGradient id="l3p1-lightcone" cx="50%" cy="25%" r="60%">
+                      <stop offset="0%" stop-color="#ffd27a" stop-opacity="0.55"/>
+                      <stop offset="100%" stop-color="#ffd27a" stop-opacity="0"/>
+                    </radialGradient>
                   </defs>
                   <rect width="200" height="160" fill="url(#l3bg1)"/>
+                  <!-- attic light cone from bulb -->
+                  <ellipse class="anim-flicker-cone" cx="100" cy="40" rx="70" ry="70" fill="url(#l3p1-lightcone)"/>
+                  <!-- ceiling bulb on a wire -->
+                  <line x1="100" y1="0" x2="100" y2="18" stroke="#1a0e04" stroke-width="0.8"/>
+                  <circle class="anim-bulb" cx="100" cy="22" r="3" fill="#ffd27a"/>
                   <!-- attic floor planks -->
                   <g stroke="#2a1808" stroke-width="1" opacity="0.5">
                     <line x1="0" y1="130" x2="200" y2="130"/>
@@ -559,26 +568,19 @@
                   <!-- dusty box -->
                   <rect x="70" y="95" width="80" height="40" fill="#6a4a2a" stroke="#1a0e04" stroke-width="1.5"/>
                   <rect x="72" y="92" width="76" height="6" fill="#7a5a3a"/>
-                  <!-- Chester peering in (yellow raincoat) -->
-                  <g class="anim-chester-peer" transform="translate(30 85)">
-                    <rect width="26" height="32" rx="3" fill="#f5c948" stroke="#6b4e00" stroke-width="1.5"/>
-                    <rect x="4" y="6" width="18" height="10" fill="#2a1f00" opacity="0.6"/>
-                    <circle cx="9" cy="11" r="1.5" fill="#fff"/>
-                    <circle cx="17" cy="11" r="1.5" fill="#fff"/>
-                    <path d="M8 20 Q 13 22 18 20" stroke="#2a1f00" stroke-width="1" fill="none"/>
+                  <!-- yearbook photo coming out of box (animated rise) -->
+                  <g class="anim-yearbook" transform="translate(110 88)">
+                    <rect x="-20" y="-12" width="40" height="28" fill="#e8dcc0" stroke="#1a0e04" stroke-width="1.2"/>
+                    <rect x="-17" y="-9" width="34" height="16" fill="#2a3040"/>
+                    <text x="0" y="13" text-anchor="middle" fill="#3a2a14" font-family="'Courier New',monospace" font-size="3.5" font-weight="bold">YEARBOOK 1997</text>
+                    <!-- tiny boy+teacher thumbnails inside photo -->
+                    <circle cx="-7" cy="-2" r="2.6" fill="#e8c69a"/>
+                    <rect x="-9" y="-4" width="3.5" height="1.8" fill="#1a0e04"/>
+                    <circle cx="7" cy="-2" r="2.8" fill="#f0ccb0"/>
+                    <path d="M4 -4.5 Q 7 -7 10 -4.5" stroke="#ff6fb8" stroke-width="1.6" fill="none"/>
                   </g>
-                  <!-- yearbook photo coming out -->
-                  <g class="anim-yearbook" transform="translate(95 78)" stroke="#1a0e04" stroke-width="1.2">
-                    <rect x="-18" y="-10" width="36" height="24" fill="#e8dcc0"/>
-                    <!-- photo inset: boy + teacher silhouettes -->
-                    <rect x="-15" y="-7" width="30" height="14" fill="#2a3040"/>
-                    <!-- boy silhouette (one-eye — covered by patch) -->
-                    <circle cx="-6" cy="0" r="3" fill="#d8c098"/>
-                    <rect x="-8" y="-2" width="4" height="2" fill="#1a0e04"/>
-                    <!-- teacher silhouette (pink hair hint) -->
-                    <circle cx="6" cy="0" r="3" fill="#d8c098"/>
-                    <path d="M3 -3 Q 6 -6 9 -3" stroke="#ff6fb8" stroke-width="1.6" fill="none"/>
-                  </g>
+                  <!-- Chester (Pixar-style raincoat boy PNG) peering in -->
+                  <image class="anim-chester-peer" href="./characters/chester.png" x="12" y="58" width="56" height="80" preserveAspectRatio="xMidYMax meet"/>
                   <!-- dust motes -->
                   <g fill="#f5d8a0">
                     <circle class="anim-mote anim-mote-1" cx="60" cy="40" r="0.8"/>
@@ -591,7 +593,7 @@
                 </svg>
                 <div class="comic-speech right">a yearbook…?</div>
               </figure>
-              <!-- Panel 2: the photo — boy and teacher -->
+              <!-- Panel 2: the photo — boy and teacher (Pixar-style characters) -->
               <figure class="comic-frame" id="l3-comic-p2">
                 <div class="comic-caption top">Before he was a horridor, he was a boy.</div>
                 <svg viewBox="0 0 200 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
@@ -607,6 +609,10 @@
                       <stop offset="52%" stop-color="#ffffff" stop-opacity="0"/>
                       <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
                     </linearGradient>
+                    <!-- sepia fade to sell "old photo" feel -->
+                    <filter id="l3p2-sepia">
+                      <feColorMatrix type="matrix" values="0.55 0.45 0.18 0 0.05  0.35 0.55 0.15 0 0.05  0.25 0.30 0.20 0 0.02  0 0 0 1 0"/>
+                    </filter>
                   </defs>
                   <rect width="200" height="160" fill="url(#l3bg2)"/>
                   <!-- photo border -->
@@ -615,47 +621,19 @@
                   <!-- classroom backdrop -->
                   <rect x="20" y="20" width="160" height="80" fill="#3a4a5a"/>
                   <!-- chalkboard -->
-                  <rect x="30" y="28" width="60" height="36" fill="#1a2a1a"/>
-                  <text class="anim-chalk" x="60" y="48" fill="#ddd" font-family="'Courier New',monospace" font-size="6" text-anchor="middle">DAY CARE</text>
-                  <text class="anim-chalk anim-chalk-2" x="60" y="58" fill="#ddd" font-family="'Courier New',monospace" font-size="6" text-anchor="middle">ROLL CALL</text>
-                  <!-- the boy (will become Ex Preshon) — one eye patched -->
-                  <g class="anim-boy" transform="translate(70 108)">
-                    <!-- body -->
-                    <rect x="-9" y="-4" width="18" height="22" rx="2" fill="#5a4a3a" stroke="#2a1a0a" stroke-width="1.2"/>
-                    <!-- head -->
-                    <circle cx="0" cy="-12" r="9" fill="#e8c69a" stroke="#3a1a0a" stroke-width="1.2"/>
-                    <!-- hair (dark, messy) -->
-                    <path d="M-8 -18 Q -5 -22 0 -20 Q 5 -22 8 -18 L 8 -14 Q 0 -16 -8 -14 Z" fill="#2a1a14"/>
-                    <!-- one open eye -->
-                    <circle cx="3" cy="-12" r="1.6" fill="#fff"/>
-                    <circle cx="3" cy="-12" r="0.9" fill="#1a1a1a"/>
-                    <!-- blink lid -->
-                    <rect class="anim-blink" x="1.3" y="-13.6" width="3.4" height="3.2" fill="#e8c69a" transform-origin="3px -12px"/>
-                    <!-- other eye: PATCH (foreshadowing one-eye monster) -->
-                    <rect x="-6" y="-14" width="6" height="3" fill="#1a1a1a"/>
-                    <line x1="-8" y1="-13" x2="-9" y2="-9" stroke="#1a1a1a" stroke-width="0.8"/>
-                    <line x1="0" y1="-13" x2="2" y2="-9" stroke="#1a1a1a" stroke-width="0.8"/>
-                    <!-- mouth — flat, sad -->
-                    <line x1="-3" y1="-7" x2="3" y2="-7" stroke="#3a1a0a" stroke-width="1"/>
-                  </g>
-                  <!-- EXLENA (pink-haired teacher, too close, wide smile) -->
-                  <g class="anim-exlena" transform="translate(130 108)">
-                    <!-- body (pink teacher cardigan) -->
-                    <rect x="-12" y="-6" width="24" height="26" rx="3" fill="#d96fa8" stroke="#5a1a3a" stroke-width="1.2"/>
-                    <!-- head -->
-                    <circle cx="0" cy="-14" r="10" fill="#f0ccb0" stroke="#3a1a1a" stroke-width="1.2"/>
-                    <!-- pink hair, tall and framed -->
-                    <path d="M-10 -20 Q -12 -26 -4 -24 Q 0 -28 4 -24 Q 12 -26 10 -20 L 10 -14 Q 0 -18 -10 -14 Z" fill="#ff6fb8" stroke="#5a1a3a" stroke-width="1"/>
-                    <!-- eyes (wide, unblinking) -->
-                    <circle cx="-3" cy="-14" r="2" fill="#fff"/>
-                    <circle cx="3" cy="-14" r="2" fill="#fff"/>
-                    <circle cx="-3" cy="-14" r="1" fill="#1a1a1a"/>
-                    <circle cx="3" cy="-14" r="1" fill="#1a1a1a"/>
-                    <!-- wide smile, too wide -->
-                    <path d="M-5 -9 Q 0 -5 5 -9" stroke="#5a1a3a" stroke-width="1.4" fill="#fff0"/>
-                    <path d="M-5 -9 Q 0 -5 5 -9" fill="#3a1a2a" opacity="0.6"/>
-                    <!-- hand on boy's shoulder -->
-                    <circle class="anim-hand" cx="-13" cy="-2" r="3" fill="#f0ccb0" stroke="#3a1a1a" stroke-width="1"/>
+                  <rect x="30" y="24" width="60" height="40" fill="#1a2a1a" stroke="#5a4a2a" stroke-width="1"/>
+                  <text class="anim-chalk" x="60" y="42" fill="#ddd" font-family="'Courier New',monospace" font-size="6" text-anchor="middle">DAY CARE</text>
+                  <text class="anim-chalk anim-chalk-2" x="60" y="54" fill="#ddd" font-family="'Courier New',monospace" font-size="6" text-anchor="middle">ROLL CALL</text>
+                  <!-- classroom window with warm light -->
+                  <rect x="110" y="26" width="54" height="36" fill="#6a8aa0" stroke="#2a3a4a" stroke-width="1"/>
+                  <line x1="137" y1="26" x2="137" y2="62" stroke="#2a3a4a" stroke-width="0.8"/>
+                  <line x1="110" y1="44" x2="164" y2="44" stroke="#2a3a4a" stroke-width="0.8"/>
+                  <!-- Character row (sepia-toned Pixar characters) -->
+                  <g filter="url(#l3p2-sepia)">
+                    <!-- young Ex Preshon (boy) — character PNG, scaled down -->
+                    <image class="anim-boy" href="./characters/expreshon.png" x="44" y="54" width="48" height="70" preserveAspectRatio="xMidYMax meet"/>
+                    <!-- Exlena the teacher — standing beside him -->
+                    <image class="anim-exlena" href="./characters/exlena.png" x="100" y="48" width="56" height="78" preserveAspectRatio="xMidYMax meet"/>
                   </g>
                   <!-- scanline overlay -->
                   <rect class="anim-scan" x="16" y="16" width="168" height="118" fill="url(#l3scan)" opacity="0.25" pointer-events="none"/>
@@ -665,7 +643,7 @@
                 </svg>
                 <div class="comic-speech left">…that's him…</div>
               </figure>
-              <!-- Panel 3: tease Level 4 — both shadows in basement -->
+              <!-- Panel 3: tease Level 4 — both characters silhouetted in basement -->
               <figure class="comic-frame" id="l3-comic-p3">
                 <div class="comic-caption top">The basement is where it started. Level 4.</div>
                 <svg viewBox="0 0 200 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
@@ -678,6 +656,14 @@
                       <stop offset="0%" stop-color="#ffd27a" stop-opacity="0.85"/>
                       <stop offset="100%" stop-color="#ffd27a" stop-opacity="0"/>
                     </radialGradient>
+                    <!-- silhouette filter: darken to near-black, keep alpha -->
+                    <filter id="l3p3-silhouette">
+                      <feColorMatrix type="matrix" values="0 0 0 0 0.08  0 0 0 0 0.03  0 0 0 0 0.09  0 0 0 1 0"/>
+                    </filter>
+                    <!-- pink-tinted silhouette for Exlena -->
+                    <filter id="l3p3-pink-silhouette">
+                      <feColorMatrix type="matrix" values="0 0 0 0 0.18  0 0 0 0 0.06  0 0 0 0 0.12  0 0 0 1 0"/>
+                    </filter>
                   </defs>
                   <rect width="200" height="160" fill="url(#l3bg3)"/>
                   <!-- stone floor hint -->
@@ -688,30 +674,22 @@
                   </g>
                   <!-- torch cone from bottom-left (player just off-screen) -->
                   <ellipse class="anim-torch" cx="30" cy="120" rx="55" ry="40" fill="url(#l3torch)" transform-origin="30px 120px"/>
-                  <!-- Ex Preshon silhouette (tall, one giant eye) — left -->
-                  <g class="anim-expreshon" transform="translate(70 85)">
-                    <path d="M-14 50 C -18 10 -10 -8 0 -10 C 10 -8 18 10 14 50 Z" fill="#1a0a14" stroke="#5a1a3a" stroke-width="1.2"/>
-                    <!-- single giant eye, glowing -->
-                    <circle cx="0" cy="5" r="6" fill="#fff8dc"/>
-                    <circle class="anim-eye-red" cx="0" cy="5" r="3" fill="#ff3030"/>
-                    <circle cx="0" cy="5" r="1.2" fill="#1a0a14"/>
+                  <!-- Ex Preshon silhouette (Pixar character PNG, darkened) — left -->
+                  <g class="anim-expreshon">
+                    <image href="./characters/expreshon.png" x="46" y="52" width="54" height="78" preserveAspectRatio="xMidYMax meet" filter="url(#l3p3-silhouette)"/>
+                    <!-- glowing single red eye on top, positioned over character head -->
+                    <circle cx="74" cy="80" r="5" fill="#fff8dc"/>
+                    <circle class="anim-eye-red" cx="74" cy="80" r="3" fill="#ff3030" transform-box="fill-box" transform-origin="center"/>
+                    <circle cx="74" cy="80" r="1.2" fill="#1a0a14"/>
                   </g>
-                  <!-- EXLENA silhouette (horned, pink glow) — right -->
-                  <g class="anim-exlena-dark" transform="translate(135 85)">
-                    <!-- body -->
-                    <path d="M-15 50 C -18 15 -12 -6 0 -8 C 12 -6 18 15 15 50 Z" fill="#2a0a1a" stroke="#ff5fa2" stroke-width="1.2"/>
-                    <!-- horns -->
-                    <path d="M-7 -8 L -10 -16 L -5 -10 Z" fill="#ff5fa2" stroke="#5a1a3a" stroke-width="0.8"/>
-                    <path d="M7 -8 L 10 -16 L 5 -10 Z" fill="#ff5fa2" stroke="#5a1a3a" stroke-width="0.8"/>
-                    <!-- two white eyes with pink ring -->
-                    <circle cx="-4" cy="2" r="2.8" fill="#fff"/>
-                    <circle cx="4" cy="2" r="2.8" fill="#fff"/>
-                    <circle class="anim-eye-pink" cx="-4" cy="2" r="1.6" fill="#ff5fa2"/>
-                    <circle class="anim-eye-pink" cx="4" cy="2" r="1.6" fill="#ff5fa2"/>
-                    <circle cx="-4" cy="2" r="0.8" fill="#1a0a14"/>
-                    <circle cx="4" cy="2" r="0.8" fill="#1a0a14"/>
-                    <!-- wide toothy grin -->
-                    <path d="M-6 10 L 6 10 L 4 14 L 2 10 L 0 14 L -2 10 L -4 14 Z" fill="#fff" stroke="#5a1a3a" stroke-width="0.8"/>
+                  <!-- EXLENA silhouette (Pixar character PNG, pink-tinted) — right -->
+                  <g class="anim-exlena-dark">
+                    <image href="./characters/exlena.png" x="112" y="50" width="58" height="82" preserveAspectRatio="xMidYMax meet" filter="url(#l3p3-pink-silhouette)"/>
+                    <!-- pink eye glow -->
+                    <circle class="anim-eye-pink" cx="137" cy="76" r="2.2" fill="#ff5fa2"/>
+                    <circle class="anim-eye-pink" cx="144" cy="76" r="2.2" fill="#ff5fa2"/>
+                    <circle cx="137" cy="76" r="0.9" fill="#1a0a14"/>
+                    <circle cx="144" cy="76" r="0.9" fill="#1a0a14"/>
                   </g>
                   <!-- drip/water stains -->
                   <g fill="#5a1a2a" opacity="0.5">

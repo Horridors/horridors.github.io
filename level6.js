@@ -631,11 +631,35 @@
     }
   }
   function drawSocky() {
+    const s = state.socky;
+    if (!s) return;
     if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
-      window.HorridorsSprites.drawCharacter(ctx, 'sockyshok', socky.x + socky.w/2, socky.y + socky.h + 6, 1, 72);
+      // Sprite helper expects foot anchor (bottom-center). Pipe bob + shake for life.
+      const footX = s.x + s.w / 2 + (s.shake ? (Math.random() - 0.5) * 4 : 0);
+      const footY = s.y + s.h + 6 + Math.sin((s.bob || 0)) * 2;
+      window.HorridorsSprites.drawCharacter(ctx, 'sockyshok', footX, footY, 1, 72);
+      // Angry red ring when engaged
+      if (s.angry && !s.defeated) {
+        ctx.save();
+        ctx.globalAlpha = 0.4 + 0.2 * Math.sin(performance.now() / 150);
+        ctx.strokeStyle = '#ff4a5a';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.ellipse(s.x + s.w / 2, s.y + s.h + 6, s.w * 0.6, 8, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
       return;
     }
-}
+    // Fallback: simple box so the level never crashes
+    ctx.save();
+    ctx.fillStyle = s.angry ? '#e04040' : '#8b5fbf';
+    ctx.fillRect(s.x, s.y, s.w, s.h);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(s.x + 18, s.y + 30, 12, 12);
+    ctx.fillRect(s.x + s.w - 30, s.y + 30, 12, 12);
+    ctx.restore();
+  }
   function drawZaps() {
     for (const z of zaps) {
       ctx.save();

@@ -1285,6 +1285,16 @@ body {
   0%,  92%, 94%, 100% { opacity: 0; }
   93%                 { opacity: 0.18; }
 }
+#l3-comic-p1 .anim-bulb { transform-box: fill-box; transform-origin: center; animation: l3-bulb 2.4s ease-in-out infinite; }
+@keyframes l3-bulb {
+  0%,100% { filter: drop-shadow(0 0 3px #ffd27a); opacity: 0.95; }
+  50%     { filter: drop-shadow(0 0 6px #ffd27a); opacity: 1; }
+}
+#l3-comic-p1 .anim-flicker-cone { animation: l3-flicker-cone 5s steps(1,end) infinite; }
+@keyframes l3-flicker-cone {
+  0%,  92%, 94%, 100% { opacity: 1; }
+  93%                 { opacity: 0.55; }
+}
 
 /* Panel 2 */
 #l3-comic-p2 svg { animation: l3-zoom 7s ease-in-out infinite; transform-origin: 60% 60%; }
@@ -1298,15 +1308,15 @@ body {
   0%,   86%, 90%, 100% { opacity: 1; }
   88%,  89%            { opacity: 0.35; }
 }
-#l3-comic-p2 .anim-blink { transform-box: fill-box; transform-origin: center; animation: l3-blink 4.5s steps(1,end) infinite; }
-@keyframes l3-blink {
-  0%,  92%, 96%, 100% { transform: scaleY(0); }
-  94%                 { transform: scaleY(1); }
+#l3-comic-p2 .anim-boy { transform-box: fill-box; transform-origin: bottom center; animation: l3-boy-breath 3.6s ease-in-out infinite; }
+@keyframes l3-boy-breath {
+  0%,100% { transform: scaleY(1) translateY(0); }
+  50%     { transform: scaleY(1.015) translateY(-1px); }
 }
-#l3-comic-p2 .anim-hand { animation: l3-hand 3.8s ease-in-out infinite; }
-@keyframes l3-hand {
-  0%,100% { transform: translate(0, 0); }
-  50%     { transform: translate(-1px, 0.5px); }
+#l3-comic-p2 .anim-exlena { transform-box: fill-box; transform-origin: bottom center; animation: l3-exlena-lean 4.2s ease-in-out infinite; }
+@keyframes l3-exlena-lean {
+  0%,100% { transform: translate(0, 0) rotate(0deg); }
+  50%     { transform: translate(-1.5px, 0) rotate(-1.5deg); }
 }
 #l3-comic-p2 .anim-scan { animation: l3-scan 2.6s linear infinite; }
 @keyframes l3-scan {
@@ -1315,6 +1325,16 @@ body {
 }
 
 /* Panel 3 */
+#l3-comic-p3 .anim-expreshon { transform-box: fill-box; transform-origin: center bottom; animation: l3-expreshon-float 3s ease-in-out infinite; }
+@keyframes l3-expreshon-float {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-2px); }
+}
+#l3-comic-p3 .anim-exlena-dark { transform-box: fill-box; transform-origin: center bottom; animation: l3-exlena-float 3.6s ease-in-out infinite; animation-delay: 0.3s; }
+@keyframes l3-exlena-float {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-1.5px); }
+}
 #l3-comic-p3 .anim-torch { animation: l3-torch 1.5s ease-in-out infinite; }
 @keyframes l3-torch {
   0%,100% { transform: scale(1);    opacity: 0.85; }
@@ -1351,9 +1371,9 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  #l3-comic-p1 .anim-chester-peer, #l3-comic-p1 .anim-yearbook, #l3-comic-p1 .anim-mote, #l3-comic-p1 .anim-flicker,
-  #l3-comic-p2 svg, #l3-comic-p2 .anim-chalk, #l3-comic-p2 .anim-blink, #l3-comic-p2 .anim-hand, #l3-comic-p2 .anim-scan,
-  #l3-comic-p3 .anim-torch, #l3-comic-p3 .anim-eye-red, #l3-comic-p3 .anim-eye-pink, #l3-comic-p3 .anim-neon, #l3-comic-p3 .anim-subtitle, #l3-comic-p3 .anim-drop {
+  #l3-comic-p1 .anim-chester-peer, #l3-comic-p1 .anim-yearbook, #l3-comic-p1 .anim-mote, #l3-comic-p1 .anim-flicker, #l3-comic-p1 .anim-bulb, #l3-comic-p1 .anim-flicker-cone,
+  #l3-comic-p2 svg, #l3-comic-p2 .anim-chalk, #l3-comic-p2 .anim-boy, #l3-comic-p2 .anim-exlena, #l3-comic-p2 .anim-scan,
+  #l3-comic-p3 .anim-torch, #l3-comic-p3 .anim-expreshon, #l3-comic-p3 .anim-exlena-dark, #l3-comic-p3 .anim-eye-red, #l3-comic-p3 .anim-eye-pink, #l3-comic-p3 .anim-neon, #l3-comic-p3 .anim-subtitle, #l3-comic-p3 .anim-drop {
     animation: none;
   }
 }
