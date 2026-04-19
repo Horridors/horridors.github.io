@@ -97,6 +97,103 @@ function flatMat(color, opts = {}) {
   });
 }
 
+// ---------------------------------------------------------------
+// Shared billboard-sprite helper — L1 bitmap characters in 3D
+// ---------------------------------------------------------------
+// Loads a character PNG from ./characters/ and builds a camera-facing
+// textured plane (billboard). Returned group.userData.__billboard is set
+// so the render loop can rotate it to face the camera each frame.
+// The plane is anchored at feet (y = 0 at group origin).
+const __charTexLoader = new THREE.TextureLoader();
+__charTexLoader.setCrossOrigin('anonymous');
+const __charTexCache = {};
+function loadCharTex(name) {
+  if (__charTexCache[name]) return __charTexCache[name];
+  const tex = __charTexLoader.load('./characters/' + name + '.png');
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.magFilter = THREE.LinearFilter;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.anisotropy = 4;
+  __charTexCache[name] = tex;
+  return tex;
+}
+// aspect = naturalWidth / naturalHeight. Since textures load async, we use
+// a sane default aspect per character (measured from the real PNGs).
+const CHAR_ASPECT = {
+  chester: 0.69, mum: 0.69, thistle: 0.67, grinpatch: 0.69, hollow: 0.69,
+  drip: 0.67, inkybin: 0.69, expreshon: 0.69, exlena: 0.69, sockyshok: 0.68, blacky: 0.69,
+};
+function makeCharacterBillboard(charName, heightMeters = 1.8) {
+  const g = new THREE.Group();
+  const tex = loadCharTex(charName);
+  const aspect = CHAR_ASPECT[charName] || 0.7;
+  const w = heightMeters * aspect;
+  const h = heightMeters;
+  const geo = new THREE.PlaneGeometry(w, h);
+  const mat = new THREE.MeshStandardMaterial({
+    map: tex,
+    transparent: true,
+    alphaTest: 0.35,
+    side: THREE.DoubleSide,
+    roughness: 0.85,
+    metalness: 0,
+    emissive: '#000',
+  });
+  const plane = new THREE.Mesh(geo, mat);
+  // Feet at group y=0 — plane centered on h/2 up
+  plane.position.y = h / 2;
+  plane.castShadow = false; // transparent PNGs render odd shadows
+  plane.receiveShadow = false;
+  // Update correct size once the texture actually loads (aspect may differ)
+  tex.__onUpdate = () => {
+    if (tex.image && tex.image.naturalWidth) {
+      const realAspect = tex.image.naturalWidth / tex.image.naturalHeight;
+      plane.geometry.dispose();
+      plane.geometry = new THREE.PlaneGeometry(h * realAspect, h);
+    }
+  };
+  if (tex.image && tex.image.complete) tex.__onUpdate();
+  else tex.addEventListener && tex.addEventListener('update', tex.__onUpdate);
+  // Fallback: poll once after a beat
+  setTimeout(() => tex.__onUpdate && tex.__onUpdate(), 400);
+
+  // Ground shadow — a flat dark ellipse on y=0.02
+  const shadowGeo = new THREE.CircleGeometry(w * 0.35, 20);
+  const shadowMat = new THREE.MeshBasicMaterial({
+    color: 0x000000, transparent: true, opacity: 0.35, depthWrite: false,
+  });
+  const shadow = new THREE.Mesh(shadowGeo, shadowMat);
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.y = 0.02;
+  shadow.scale.y = 0.5; // squash into oval
+
+  g.add(shadow);
+  g.add(plane);
+  plane.userData.__isBillboardPlane = true;
+  g.userData.__billboard = plane;
+  g.userData.__sprite = plane;
+  g.userData.__billboardGroup = true;
+  return g;
+}
+
+// Called each frame — rotate every billboard plane to face the camera.
+// Y-axis-only rotation so sprites stay upright (no pitch/roll).
+function updateBillboards(cam) {
+  scene.traverse((obj) => {
+    if (obj.userData && obj.userData.__isBillboardPlane) {
+      // Work in world space: face the camera horizontally
+      const worldPos = new THREE.Vector3();
+      obj.getWorldPosition(worldPos);
+      const dx = cam.position.x - worldPos.x;
+      const dz = cam.position.z - worldPos.z;
+      const yaw = Math.atan2(dx, dz);
+      // Undo parent rotation so plane faces camera regardless of group rotation
+      const parentYaw = obj.parent ? obj.parent.rotation.y : 0;
+      obj.rotation.y = yaw - parentYaw;
+    }
+  });
+}
+
 const PALETTE = {
   floor:     '#1f2a3a',
   floorEdge: '#2a3850',
@@ -202,80 +299,10 @@ window.addEventListener('mousemove', (e) => {
 // 6. Chester — low-poly player model
 // ---------------------------------------------------------------
 function makeChester() {
-  const g = new THREE.Group();
+  // Billboard sprite — same artwork as L1 bitmap Chester
+  const g = makeCharacterBillboard('chester', 1.9);
 
-  // Body (torso) — blue jacket
-  const torso = new THREE.Mesh(
-    new THREE.BoxGeometry(0.55, 0.7, 0.35),
-    flatMat(PALETTE.chesterPants, { rough: 0.8 }),
-  );
-  torso.position.y = 0.85;
-  torso.castShadow = true;
-  g.add(torso);
-
-  // Head — skin-tone box
-  const head = new THREE.Mesh(
-    new THREE.BoxGeometry(0.45, 0.45, 0.42),
-    flatMat(PALETTE.chesterBody, { rough: 0.9 }),
-  );
-  head.position.y = 1.43;
-  head.castShadow = true;
-  g.add(head);
-
-  // Hair cap
-  const hair = new THREE.Mesh(
-    new THREE.BoxGeometry(0.48, 0.14, 0.45),
-    flatMat(PALETTE.chesterHair),
-  );
-  hair.position.y = 1.67;
-  hair.castShadow = true;
-  g.add(hair);
-
-  // Eyes
-  const eyeMat = flatMat('#1a1a22', { rough: 0.5 });
-  const eyeGeo = new THREE.BoxGeometry(0.06, 0.06, 0.02);
-  const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
-  eyeL.position.set(-0.1, 1.47, 0.22);
-  g.add(eyeL);
-  const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
-  eyeR.position.set(0.1, 1.47, 0.22);
-  g.add(eyeR);
-
-  // Arms
-  const armGeo = new THREE.BoxGeometry(0.15, 0.65, 0.15);
-  const armMat = flatMat(PALETTE.chesterPants);
-  const armL = new THREE.Mesh(armGeo, armMat);
-  armL.position.set(-0.37, 0.87, 0);
-  armL.castShadow = true;
-  g.add(armL);
-  const armR = new THREE.Mesh(armGeo, armMat);
-  armR.position.set(0.37, 0.87, 0);
-  armR.castShadow = true;
-  g.add(armR);
-
-  // Hands
-  const handGeo = new THREE.BoxGeometry(0.16, 0.14, 0.16);
-  const handMat = flatMat(PALETTE.chesterBody);
-  const handL = new THREE.Mesh(handGeo, handMat);
-  handL.position.set(-0.37, 0.48, 0);
-  g.add(handL);
-  const handR = new THREE.Mesh(handGeo, handMat);
-  handR.position.set(0.37, 0.48, 0);
-  g.add(handR);
-
-  // Legs
-  const legGeo = new THREE.BoxGeometry(0.22, 0.55, 0.22);
-  const legMat = flatMat('#1a2038');
-  const legL = new THREE.Mesh(legGeo, legMat);
-  legL.position.set(-0.14, 0.27, 0);
-  legL.castShadow = true;
-  g.add(legL);
-  const legR = new THREE.Mesh(legGeo, legMat);
-  legR.position.set(0.14, 0.27, 0);
-  legR.castShadow = true;
-  g.add(legR);
-
-  // Flashlight (small cylinder) — held in right hand
+  // Flashlight (small cylinder) — held to the right of Chester
   const flash = new THREE.Group();
   const flashBody = new THREE.Mesh(
     new THREE.CylinderGeometry(0.06, 0.06, 0.28, 8),
@@ -290,43 +317,43 @@ function makeChester() {
   flashBulb.rotation.z = Math.PI / 2;
   flashBulb.position.x = 0.17;
   flash.add(flashBulb);
-  flash.position.set(0.42, 0.48, 0.15);
+  flash.position.set(0.42, 0.9, 0.15);
   g.add(flash);
 
   // Spotlight beam from flashlight
   const spot = new THREE.SpotLight('#fff6c8', 2.0, 12, Math.PI / 6, 0.5, 1.2);
-  spot.position.set(0.42, 0.5, 0.18);
+  spot.position.set(0.42, 0.9, 0.18);
   const spotTarget = new THREE.Object3D();
-  spotTarget.position.set(0.42, 0.5, 5);
+  spotTarget.position.set(0.42, 0.9, 5);
   g.add(spot);
   g.add(spotTarget);
   spot.target = spotTarget;
 
-  g.userData = {
-    animT: 0,
-    armL, armR, legL, legR, flash, spot, spotTarget,
-    // Grabpack glow hand (hidden until picked up)
-    grabGlow: null,
-  };
+  // No-op limb stubs so the existing animation loop keeps working
+  const stubArmL = new THREE.Object3D();
+  const stubArmR = new THREE.Object3D();
+  const stubLegL = new THREE.Object3D();
+  const stubLegR = new THREE.Object3D();
+  g.add(stubArmL, stubArmR, stubLegL, stubLegR);
 
-  // Grabpack glow (attached to right hand, hidden initially)
+  // Grabpack glow (hidden initially)
   const grabGlow = new THREE.PointLight(PALETTE.accentT, 0, 3.5);
-  grabGlow.position.set(0.37, 0.48, 0.2);
+  grabGlow.position.set(0.37, 0.9, 0.2);
   g.add(grabGlow);
+
+  g.userData.animT = 0;
+  g.userData.armL = stubArmL;
+  g.userData.armR = stubArmR;
+  g.userData.legL = stubLegL;
+  g.userData.legR = stubLegR;
+  g.userData.flash = flash;
+  g.userData.spot = spot;
+  g.userData.spotTarget = spotTarget;
   g.userData.grabGlow = grabGlow;
 
-  // Change hand color when grabpack is on
   g.userData.setGrabpack = (on) => {
-    handR.material = on
-      ? flatMat(PALETTE.accentT, { emissive: PALETTE.accentT, emissiveIntensity: 0.4 })
-      : flatMat(PALETTE.chesterBody);
     grabGlow.intensity = on ? 0.8 : 0;
-    if (on) {
-      // Hide flashlight — it "becomes" the grabpack
-      flash.visible = false;
-    } else {
-      flash.visible = true;
-    }
+    flash.visible = !on;
   };
 
   return g;
@@ -337,105 +364,39 @@ function makeChester() {
 // (teal, tall capsule, single bolt, no ears, T-arms, tiny feet)
 // ---------------------------------------------------------------
 function makeSocky() {
-  const g = new THREE.Group();
-
-  // Body — tall capsule (box scaled)
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(0.8, 1.5, 0.6),
-    flatMat(PALETTE.accentT, { rough: 0.85, emissive: PALETTE.accentT, emissiveIntensity: 0.12 }),
-  );
-  body.position.y = 0.85;
-  body.castShadow = true;
-  g.add(body);
-
-  // Top cap (slightly rounded-ish via smaller scaled box)
-  const topCap = new THREE.Mesh(
-    new THREE.SphereGeometry(0.42, 10, 8),
-    flatMat(PALETTE.accentT, { emissive: PALETTE.accentT, emissiveIntensity: 0.12 }),
-  );
-  topCap.position.y = 1.6;
-  topCap.scale.set(1.0, 0.7, 0.78);
-  g.add(topCap);
-
-  // Bottom cap
-  const botCap = new THREE.Mesh(
-    new THREE.SphereGeometry(0.42, 10, 8),
-    flatMat(PALETTE.accentT),
-  );
-  botCap.position.y = 0.1;
-  botCap.scale.set(1.0, 0.7, 0.78);
-  g.add(botCap);
-
-  // Arms (T-arms) — stubby boxes
-  const armGeo = new THREE.BoxGeometry(0.5, 0.22, 0.24);
-  const armMat = flatMat(PALETTE.accentT);
-  const armL = new THREE.Mesh(armGeo, armMat);
-  armL.position.set(-0.65, 0.9, 0);
-  armL.castShadow = true;
-  g.add(armL);
-  const armR = new THREE.Mesh(armGeo, armMat);
-  armR.position.set(0.65, 0.9, 0);
-  armR.castShadow = true;
-  g.add(armR);
-
-  // Feet — tiny teal boxes
-  const footGeo = new THREE.BoxGeometry(0.25, 0.12, 0.3);
-  const footMat = flatMat('#1c8c82');
-  const footL = new THREE.Mesh(footGeo, footMat);
-  footL.position.set(-0.22, 0.06, 0.05);
-  g.add(footL);
-  const footR = new THREE.Mesh(footGeo, footMat);
-  footR.position.set(0.22, 0.06, 0.05);
-  g.add(footR);
-
-  // Eyes — white ovals with black pupils
-  const whiteMat = flatMat('#ffffff', { rough: 0.5 });
-  const eyeWhiteGeo = new THREE.SphereGeometry(0.13, 8, 6);
-  const eyeL = new THREE.Mesh(eyeWhiteGeo, whiteMat);
-  eyeL.position.set(-0.18, 1.55, 0.3);
-  eyeL.scale.set(1.0, 1.1, 0.5);
-  g.add(eyeL);
-  const eyeR = new THREE.Mesh(eyeWhiteGeo, whiteMat);
-  eyeR.position.set(0.18, 1.55, 0.3);
-  eyeR.scale.set(1.0, 1.1, 0.5);
-  g.add(eyeR);
-  const pupilMat = flatMat('#1a1a22', { rough: 0.3 });
-  const pupilGeo = new THREE.SphereGeometry(0.055, 6, 5);
-  const pupL = new THREE.Mesh(pupilGeo, pupilMat);
-  pupL.position.set(-0.18, 1.56, 0.38);
-  g.add(pupL);
-  const pupR = new THREE.Mesh(pupilGeo, pupilMat);
-  pupR.position.set(0.18, 1.56, 0.38);
-  g.add(pupR);
-
-  // Mouth
-  const mouth = new THREE.Mesh(
-    new THREE.BoxGeometry(0.24, 0.07, 0.04),
-    flatMat('#1a1a22'),
-  );
-  mouth.position.set(0, 1.32, 0.31);
-  g.add(mouth);
-
-  // Lightning bolt — crude zigzag from boxes, on top of head
-  const bolt = new THREE.Group();
-  const boltMat = flatMat(PALETTE.bolt, { emissive: PALETTE.lightningY, emissiveIntensity: 0.2 });
-  const b1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.25, 0.05), boltMat);
-  b1.position.set(-0.04, 0.12, 0);
-  b1.rotation.z = 0.35;
-  bolt.add(b1);
-  const b2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.25, 0.05), boltMat);
-  b2.position.set(0.06, 0.3, 0);
-  b2.rotation.z = -0.35;
-  bolt.add(b2);
-  bolt.position.set(0, 1.88, 0);
-  g.add(bolt);
+  // Billboard sprite — same artwork as L1 Socky Shok
+  const g = makeCharacterBillboard('sockyshok', 1.9);
+  const sprite = g.userData.__sprite;
+  const baseSpriteY = sprite.position.y;
 
   // Soft teal glow
   const glow = new THREE.PointLight(PALETTE.accentT, 0.7, 6);
   glow.position.y = 1.2;
   g.add(glow);
 
-  g.userData = { body, topCap, botCap, armL, armR, bolt, glow, bob: 0 };
+  // Proxy "body/topCap/botCap" to the sprite so the bob anim nudges the sprite.
+  // The animation sets `.position.y` to values like `0.85 + sin*0.04`; we treat
+  // the delta off the original 0.85 as bob offset and apply it to the sprite.
+  const bobBody = {
+    position: {
+      get y() { return 0.85; },
+      set y(v) { sprite.position.y = baseSpriteY + (v - 0.85); },
+    },
+  };
+  const noop = { position: { get y() { return 0; }, set y(v) {} } };
+  const stubArmL = new THREE.Object3D();
+  const stubArmR = new THREE.Object3D();
+  const stubBolt = new THREE.Object3D();
+  g.add(stubArmL, stubArmR, stubBolt);
+
+  g.userData.body = bobBody;
+  g.userData.topCap = noop;
+  g.userData.botCap = noop;
+  g.userData.armL = stubArmL;
+  g.userData.armR = stubArmR;
+  g.userData.bolt = stubBolt;
+  g.userData.glow = glow;
+  g.userData.bob = 0;
   return g;
 }
 
@@ -443,40 +404,16 @@ function makeSocky() {
 // 8. Squidley (Inky Bin ally) — small floating inky creature
 // ---------------------------------------------------------------
 function makeSquidley() {
-  const g = new THREE.Group();
-  const body = new THREE.Mesh(
-    new THREE.SphereGeometry(0.35, 10, 8),
-    flatMat(PALETTE.squidleyInk, { emissive: PALETTE.squidleyGlow, emissiveIntensity: 0.5 }),
-  );
-  body.scale.set(1, 0.85, 1);
-  g.add(body);
-  // Tentacles — 4 thin boxes dangling
-  const tenMat = flatMat(PALETTE.squidleyInk);
-  for (let i = 0; i < 4; i++) {
-    const a = (i / 4) * Math.PI * 2;
-    const t = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.35, 0.06), tenMat);
-    t.position.set(Math.cos(a) * 0.18, -0.3, Math.sin(a) * 0.18);
-    g.add(t);
-  }
-  // Eye — single big cyclops
-  const eyeWhite = new THREE.Mesh(
-    new THREE.SphereGeometry(0.14, 8, 6),
-    flatMat('#fff', { rough: 0.4 }),
-  );
-  eyeWhite.position.set(0, 0.05, 0.3);
-  g.add(eyeWhite);
-  const pupil = new THREE.Mesh(
-    new THREE.SphereGeometry(0.06, 6, 5),
-    flatMat('#1a0f2a'),
-  );
-  pupil.position.set(0, 0.05, 0.38);
-  g.add(pupil);
+  // Billboard sprite — Inky Bin bitmap from L1. Small floating ally.
+  const g = makeCharacterBillboard('inkybin', 1.1);
 
   // Halo
   const halo = new THREE.PointLight(PALETTE.squidleyGlow, 0.6, 3.5);
+  halo.position.y = 0.5;
   g.add(halo);
 
-  g.userData = { bob: Math.random() * 10, body };
+  g.userData.bob = Math.random() * 10;
+  g.userData.body = g.userData.__sprite; // reference kept for compatibility
   return g;
 }
 
@@ -484,18 +421,12 @@ function makeSquidley() {
 // 9. Drip (tentacle threat in hub water) — distant slow creature
 // ---------------------------------------------------------------
 function makeDrip() {
-  const g = new THREE.Group();
-  const matDark = flatMat('#1a0a1a', { emissive: '#4a0a4a', emissiveIntensity: 0.3 });
-  const body = new THREE.Mesh(new THREE.SphereGeometry(0.6, 10, 8), matDark);
-  body.scale.set(1.4, 0.6, 1.4);
-  g.add(body);
-  for (let i = 0; i < 5; i++) {
-    const a = (i / 5) * Math.PI * 2;
-    const t = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.7, 0.1), matDark);
-    t.position.set(Math.cos(a) * 0.4, -0.3 - Math.random() * 0.3, Math.sin(a) * 0.4);
-    t.rotation.z = (Math.random() - 0.5) * 0.4;
-    g.add(t);
-  }
+  // Billboard sprite — Drip bitmap from L1. Slow distant threat.
+  const g = makeCharacterBillboard('drip', 1.8);
+  // Menacing purple underglow
+  const ominous = new THREE.PointLight('#6a1a8a', 0.5, 5);
+  ominous.position.y = 0.3;
+  g.add(ominous);
   return g;
 }
 
@@ -1235,6 +1166,7 @@ function tick() {
   requestAnimationFrame(tick);
   const dt = Math.min(clock.getDelta(), 0.1);
   update(dt);
+  updateBillboards(camera);
   renderer.render(scene, camera);
 }
 
