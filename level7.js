@@ -69,7 +69,7 @@
       { title: 'The order',
         text: 'FIRE first — soften his scribbles.\nTHUNDER — stun his big grin.\nEARTH — make him mossy.\nWATER — he\'ll be full-moss and harmless.' },
       { title: 'Controls',
-        text: 'Stand ON a matching pylon to charge. When the pylon\'s bar fills, press its number key (1-4) to fire. Go in order. Three hits and you\'re out.' },
+        text: 'Stand ON a matching pylon to charge. When the pylon\'s bar fills, press its number key (1-4) on keyboard, or the A button on touch, to fire. Go in order. Three hits and you\'re out.' },
     ],
   };
 
@@ -469,11 +469,15 @@
       state.chargeAmt = Math.max(0, state.chargeAmt - dt / 2.2);
     }
 
-    // Element hotkeys (1..4)
+    // Element hotkeys (1..4) — desktop
     if (wasPressed('1')) shootElement('fire');
     if (wasPressed('2')) shootElement('thunder');
     if (wasPressed('3')) shootElement('earth');
     if (wasPressed('4')) shootElement('water');
+    // Tablet/mobile: A button (key 'e') fires whichever pylon is charged
+    if (wasPressed('e', 'E') && state.charge && state.chargeAmt >= 1) {
+      shootElement(state.charge);
+    }
 
     // Update projectiles
     for (const pr of projectiles) {
@@ -597,7 +601,9 @@
         ctx.strokeRect(p.x + 0.5, p.y + p.h + 6 + 0.5, bw - 1, bh - 1);
         if (state.chargeAmt >= 1 && isNext) {
           ctx.fillStyle = '#fff'; ctx.font = '800 12px system-ui';
-          ctx.fillText(`PRESS ${ELEMENTS.find(e=>e.id===p.id).key}`, p.x + p.w/2, p.y + p.h + 30);
+          const isTouch = document.body.classList.contains('has-touch') || ('ontouchstart' in window);
+          const keyLabel = isTouch ? 'A' : ELEMENTS.find(e=>e.id===p.id).key;
+          ctx.fillText(`PRESS ${keyLabel}`, p.x + p.w/2, p.y + p.h + 30);
         }
       }
     }
