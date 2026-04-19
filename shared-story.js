@@ -157,7 +157,9 @@
     if (document.getElementById('btn-gems')) return;
     const btn = document.createElement('button');
     btn.id = 'btn-gems';
-    btn.style.cssText = 'position:fixed;top:10px;right:180px;z-index:150;padding:6px 12px;background:#1a1024;border:1px solid #ffd84a;color:#ffd84a;border-radius:8px;font:600 12px system-ui;cursor:pointer;';
+    // Sits immediately to the right of the coin pill (top-left HUD cluster)
+    // so the top-right fullscreen button can't cover it.
+    btn.style.cssText = 'position:fixed;top:10px;left:150px;z-index:1001;padding:6px 12px;background:#1a1024;border:1px solid #ffd84a;color:#ffd84a;border-radius:999px;font:600 12px system-ui;cursor:pointer;';
     btn.innerHTML = '💎 Gems <span id="gem-count" style="background:#ffd84a;color:#1a1024;padding:1px 6px;border-radius:10px;margin-left:4px;font-weight:700;">0/' + GEMS.length + '</span>';
     btn.addEventListener('click', openGemGallery);
     (document.getElementById('game-frame') || document.body).appendChild(btn);
