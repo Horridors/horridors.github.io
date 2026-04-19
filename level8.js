@@ -957,7 +957,7 @@
 
   function drawInkyBin() {
     if (window.HorridorsSprites && window.HorridorsSprites.drawCharacter) {
-      window.HorridorsSprites.drawCharacter(ctx, 'inkybin', inkyBin.x + inkyBin.w/2, inkyBin.y + inkyBin.h + 6, 1, 52);
+      window.HorridorsSprites.drawCharacter(ctx, 'inkybin', inkybin.x + inkybin.w/2, inkybin.y + inkybin.h + 6, 1, 52);
       return;
     }
 }
