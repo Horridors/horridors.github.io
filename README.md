@@ -16,4 +16,4 @@ Just push changes to the `main` branch. GitHub Pages auto-deploys within ~1 minu
 
 ## Credits
 
-Game built by Chester Edmunds.
+Designed by Chester Edmunds. Built by Dad using AI.

@@ -1,5 +1,5 @@
 // Horridors — canonical character sprites (v22)
-// Bitmap sprites from rendered Pixar-style character portraits.
+// Bitmap sprites from rendered 3D-cartoon character portraits.
 // Backwards-compatible API: drawChester, drawThistle, drawCoin still work.
 // New API: drawCharacter(ctx, name, cx, cy, facing, sizePx)
 // Exposes window.HorridorsSprites.

@@ -10,7 +10,9 @@
     { kind: 'blank' },
     { kind: 'hero', title: '★ HORRIDORS ★', sub: 'Chapter 1 Complete' },
     { kind: 'blank' },
-    { kind: 'hero', title: 'Game built by', name: 'Chester Edmunds' },
+    { kind: 'hero', title: 'Designed by', name: 'Chester Edmunds' },
+    { kind: 'blank' },
+    { kind: 'hero', title: 'Built by Dad using AI', name: 'Dan Edmunds' },
     { kind: 'blank' },
     { kind: 'block', title: 'Story & Game Design', items: ['Chester Edmunds'] },
     { kind: 'block', title: 'Levels Design', items: [
@@ -44,7 +46,8 @@
     { kind: 'block', title: 'Code & Engine', items: [
       'HTML5 Canvas',
       'Procedural sprites & sprite caches',
-      'Built with Perplexity Computer',
+      'Code built by Dan with Perplexity AI',
+      'from Chester\'s designs',
     ]},
     { kind: 'block', title: 'Special Thanks', items: [
       'To everyone who believed in Chester',
