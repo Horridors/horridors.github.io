@@ -439,41 +439,40 @@
   function enable()  { document.body.classList.add('has-touch'); }
   function disable() { document.body.classList.remove('has-touch'); }
 
-  // ---- Idle-fade: dim the pad after inactivity so it stops covering gameplay.
-  //      Any touch/pointer/key interaction snaps it back to full opacity.
-  const IDLE_MS = 5000;
-  let idleTimer = null;
-  function setIdle(on) {
-    const root = document.getElementById('touch-controls');
-    if (!root) return;
-    if (on) {
-      root.classList.add('idle');
-      document.body.classList.add('touch-idle');
-    } else {
-      root.classList.remove('idle');
-      document.body.classList.remove('touch-idle');
-    }
+  // ---- Active-fade for the THUMBSTICK ONLY:
+  //      While the player is actively dragging the stick (moving Chester),
+  //      fade the stick so the character isn't hidden under the thumb.
+  //      When they let go, the stick pops back to full opacity.
+  //      The A/B action buttons and the top ✕ menu stay visible always.
+  function setStickActive(active) {
+    const stick = document.querySelector('.touch-stick');
+    if (!stick) return;
+    if (active) stick.classList.add('in-use');
+    else        stick.classList.remove('in-use');
   }
-  function kickIdle() {
-    setIdle(false);
-    if (idleTimer) clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => setIdle(true), IDLE_MS);
-  }
-  function wireIdleFade() {
+  function wireStickFade() {
     if (!isTouch) return;
-    // Any interaction with the pad keeps it visible; any other gameplay
-    // tap on the canvas also wakes it in case user is mid-game.
-    ['pointerdown', 'pointermove', 'touchstart', 'touchmove', 'keydown'].forEach((ev) => {
-      window.addEventListener(ev, kickIdle, { passive: true, capture: true });
+    const stick = document.querySelector('.touch-stick');
+    if (!stick) return;
+    const base = stick.querySelector('.stick-base');
+    if (!base) return;
+    // Engage while a pointer/touch is down on the stick
+    const engage = () => setStickActive(true);
+    const release = () => setStickActive(false);
+    base.addEventListener('pointerdown', engage);
+    base.addEventListener('touchstart',  engage, { passive: true });
+    // Release on any end event, anywhere in the window — handles the case
+    // where the finger leaves the stick area without a proper pointerup.
+    ['pointerup', 'pointercancel', 'touchend', 'touchcancel', 'blur'].forEach((ev) => {
+      window.addEventListener(ev, release, { capture: true });
     });
-    kickIdle(); // start the timer once UI is mounted
   }
 
   function boot() {
     if (isTouch) {
       buildUI();
       enable();
-      wireIdleFade();
+      wireStickFade();
     }
   }
   if (document.readyState === 'loading') {

@@ -3184,26 +3184,24 @@ body.has-touch #touch-menu-btn { display: block; }
    Two goals:
      1) Keep game text (dialogue, objective, Notes/Tasks/Collectibles labels)
         readable on mobile — never hidden behind the D-pad or A/B buttons.
-     2) When the on-screen pad is idle, fade it so it stops covering gameplay.
-        Any touch snaps it back to full opacity immediately.
+     2) Fade the THUMBSTICK only while it's being dragged — so the character
+        the player is moving isn't hidden under their thumb. The A/B action
+        buttons and the top ✕ menu stay fully visible always.
    ========================================================================= */
 
-/* --- 1. Idle-fade the touch controls so they stop blocking gameplay --- */
-body.has-touch #touch-controls {
-  transition: opacity 420ms ease;
+/* --- 1. Active-fade the THUMBSTICK ONLY while in use ---
+   When the player is dragging the stick to move Chester, the thumb would
+   normally cover the character. So while .in-use is set (by shared-touch.js),
+   fade the stick down to ~20% so the character underneath stays readable.
+   A/B action buttons and the top ✕ menu stay fully visible at all times. */
+body.has-touch .touch-stick {
+  transition: opacity 260ms ease;
 }
-body.has-touch #touch-controls.idle {
-  opacity: 0.22;
+body.has-touch .touch-stick.in-use {
+  opacity: 0.20;
 }
-/* The menu (hold-to-exit) button fades with the pad too */
-body.has-touch #touch-menu-btn {
-  transition: opacity 420ms ease;
-}
-body.has-touch.touch-idle #touch-menu-btn {
-  opacity: 0.30;
-}
-/* Important: even when faded visually, the pad must still receive touches
-   so the first tap wakes it up. pointer-events stays auto (default). */
+/* The stick continues to receive touches while faded — pointer-events stays
+   auto so the drag isn't interrupted. */
 
 /* --- 2. Reserve a mobile-safe zone for text so nothing hides behind controls --- */
 
