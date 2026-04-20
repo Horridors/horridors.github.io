@@ -442,8 +442,11 @@
   // ---- Active-fade for the THUMBSTICK ONLY:
   //      While the player is actively dragging the stick (moving Chester),
   //      fade the stick so the character isn't hidden under the thumb.
-  //      When they let go, the stick pops back to full opacity.
-  //      The A/B action buttons and the top ✕ menu stay visible always.
+  //      The stick re-appears ONLY when the finger/pointer that started the
+  //      drag is lifted — tapping A or B with another finger must NOT wake it.
+  //      A/B action buttons and the top ✕ menu stay visible always.
+  let stickPointerId = null;   // pointerId of the finger currently dragging the stick
+  let stickTouchIds = new Set(); // touch identifiers currently on the stick
   function setStickActive(active) {
     const stick = document.querySelector('.touch-stick');
     if (!stick) return;
@@ -456,15 +459,43 @@
     if (!stick) return;
     const base = stick.querySelector('.stick-base');
     if (!base) return;
-    // Engage while a pointer/touch is down on the stick
-    const engage = () => setStickActive(true);
-    const release = () => setStickActive(false);
-    base.addEventListener('pointerdown', engage);
-    base.addEventListener('touchstart',  engage, { passive: true });
-    // Release on any end event, anywhere in the window — handles the case
-    // where the finger leaves the stick area without a proper pointerup.
-    ['pointerup', 'pointercancel', 'touchend', 'touchcancel', 'blur'].forEach((ev) => {
-      window.addEventListener(ev, release, { capture: true });
+
+    // Pointer path (modern browsers, Playwright mouse)
+    base.addEventListener('pointerdown', (e) => {
+      stickPointerId = e.pointerId;
+      setStickActive(true);
+    });
+    // Touch path (iOS/Android real fingers — may bypass pointer events)
+    base.addEventListener('touchstart', (e) => {
+      for (const t of e.changedTouches) stickTouchIds.add(t.identifier);
+      setStickActive(true);
+    }, { passive: true });
+
+    // Release ONLY when the SAME pointer/finger that started the drag lifts.
+    // Listening at window so the release fires even if the finger slides
+    // off the stick before being lifted. A/B button taps use a different
+    // pointerId, so they're ignored here.
+    const endPointer = (e) => {
+      if (stickPointerId !== null && e.pointerId === stickPointerId) {
+        stickPointerId = null;
+        if (stickTouchIds.size === 0) setStickActive(false);
+      }
+    };
+    const endTouch = (e) => {
+      for (const t of e.changedTouches) stickTouchIds.delete(t.identifier);
+      if (stickTouchIds.size === 0 && stickPointerId === null) {
+        setStickActive(false);
+      }
+    };
+    window.addEventListener('pointerup',     endPointer, { capture: true });
+    window.addEventListener('pointercancel', endPointer, { capture: true });
+    window.addEventListener('touchend',      endTouch,   { capture: true });
+    window.addEventListener('touchcancel',   endTouch,   { capture: true });
+    // Safety: if the window loses focus, clear both trackers and wake the stick.
+    window.addEventListener('blur', () => {
+      stickPointerId = null;
+      stickTouchIds.clear();
+      setStickActive(false);
     });
   }
 
