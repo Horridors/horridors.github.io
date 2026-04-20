@@ -3268,3 +3268,88 @@ body.has-touch .touch-stick.in-use {
 body.has-touch #subtitle {
   bottom: calc(14px + 170px);
 }
+
+/* =========================================================================
+   MOBILE HUD — minimise text overlays so they don't block gameplay
+   (2026-04-20, second pass)
+   The previous pass moved text out of the d-pad zone but the subtitle
+   and objective pill still sat across the playfield. This pass shrinks
+   them both and ensures the subtitle hugs the very top, not the middle.
+   ========================================================================= */
+@media (max-width: 1100px) and (max-height: 700px) {
+
+  /* --- Subtitle: thin strip at the very bottom-centre, ABOVE the action
+     buttons but well below the playfield. Never sits over the player.
+     Auto-hides after 4s via game.js tickSpeaker(). */
+  body.has-touch #subtitle {
+    bottom: 8px;
+    top: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    /* Narrow enough to fit between the d-pad and A/B buttons */
+    max-width: min(46vw, 360px);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 11px;
+    line-height: 1.3;
+    background: rgba(0, 0, 0, 0.85);
+    border-width: 1px;
+    /* Allow tap-through so the player isn't blocked from interacting */
+    pointer-events: none;
+  }
+  body.has-touch #subtitle.speaker::before {
+    display: inline;          /* inline so it doesn't add a row */
+    margin-right: 8px;
+    font-size: 10px;
+  }
+  body.has-touch #subtitle.monster {
+    font-size: 14px;
+    letter-spacing: 0.06em;
+  }
+
+  /* --- Objective pill: keep small + faint by default; full color on hover/tap --- */
+  body.has-touch .hud-objective {
+    max-width: 200px;
+    font-size: 10px;
+    padding: 4px 10px;
+    opacity: 0.55;
+    line-height: 1.25;
+    /* Truncate to 1 line by default */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: opacity 200ms ease, max-width 200ms ease, white-space 0s 200ms;
+  }
+  /* Tap or hold to read the full thing */
+  body.has-touch .hud-objective:hover,
+  body.has-touch .hud-objective:active,
+  body.has-touch .hud-objective:focus {
+    opacity: 1;
+    max-width: min(70vw, 360px);
+    white-space: normal;
+  }
+
+  /* --- Notes / Tasks / Collectibles: smaller pills in the top strip --- */
+  body.has-touch #btn-notes,
+  body.has-touch #btn-tasks,
+  body.has-touch #btn-collectibles {
+    font-size: 10px;
+    padding: 3px 8px;
+    opacity: 0.85;
+  }
+  body.has-touch #btn-tasks { left: calc(2% + 76px); }
+
+  /* --- Keycard / pickup HUD pill on the left: smaller and dimmer --- */
+  body.has-touch #hud-key1,
+  body.has-touch #hud-key2 {
+    font-size: 10px;
+    padding: 3px 8px;
+    opacity: 0.75;
+  }
+  body.has-touch #hud .hud-left .hud-item .hud-label {
+    font-size: 10px;
+  }
+  body.has-touch #hud .hud-left {
+    gap: 6px;
+  }
+}
