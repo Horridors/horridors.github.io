@@ -439,10 +439,41 @@
   function enable()  { document.body.classList.add('has-touch'); }
   function disable() { document.body.classList.remove('has-touch'); }
 
+  // ---- Idle-fade: dim the pad after inactivity so it stops covering gameplay.
+  //      Any touch/pointer/key interaction snaps it back to full opacity.
+  const IDLE_MS = 5000;
+  let idleTimer = null;
+  function setIdle(on) {
+    const root = document.getElementById('touch-controls');
+    if (!root) return;
+    if (on) {
+      root.classList.add('idle');
+      document.body.classList.add('touch-idle');
+    } else {
+      root.classList.remove('idle');
+      document.body.classList.remove('touch-idle');
+    }
+  }
+  function kickIdle() {
+    setIdle(false);
+    if (idleTimer) clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => setIdle(true), IDLE_MS);
+  }
+  function wireIdleFade() {
+    if (!isTouch) return;
+    // Any interaction with the pad keeps it visible; any other gameplay
+    // tap on the canvas also wakes it in case user is mid-game.
+    ['pointerdown', 'pointermove', 'touchstart', 'touchmove', 'keydown'].forEach((ev) => {
+      window.addEventListener(ev, kickIdle, { passive: true, capture: true });
+    });
+    kickIdle(); // start the timer once UI is mounted
+  }
+
   function boot() {
     if (isTouch) {
       buildUI();
       enable();
+      wireIdleFade();
     }
   }
   if (document.readyState === 'loading') {

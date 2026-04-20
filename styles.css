@@ -1278,7 +1278,7 @@ body {
 
 /* -----------------------------------------------------------
    Ex Preshon: Origin — per-element SVG animations (post-L3 tease)
-   Pixar-ish subtle motion: bobs, pulses, flickers — no jump-scares.
+   Subtle motion: bobs, pulses, flickers — no jump-scares.
    ----------------------------------------------------------- */
 /* Panel 1 */
 #l3-comic-p1 .anim-chester-peer { transform-box: fill-box; transform-origin: center; animation: l3-peer 2.8s ease-in-out infinite; }
@@ -3177,4 +3177,96 @@ body.has-touch #touch-menu-btn { display: block; }
   inset: 0;
   z-index: 2;
   pointer-events: none;
+}
+
+/* =========================================================================
+   MOBILE VISIBILITY FIXES (2026-04-20)
+   Two goals:
+     1) Keep game text (dialogue, objective, Notes/Tasks/Collectibles labels)
+        readable on mobile — never hidden behind the D-pad or A/B buttons.
+     2) When the on-screen pad is idle, fade it so it stops covering gameplay.
+        Any touch snaps it back to full opacity immediately.
+   ========================================================================= */
+
+/* --- 1. Idle-fade the touch controls so they stop blocking gameplay --- */
+body.has-touch #touch-controls {
+  transition: opacity 420ms ease;
+}
+body.has-touch #touch-controls.idle {
+  opacity: 0.22;
+}
+/* The menu (hold-to-exit) button fades with the pad too */
+body.has-touch #touch-menu-btn {
+  transition: opacity 420ms ease;
+}
+body.has-touch.touch-idle #touch-menu-btn {
+  opacity: 0.30;
+}
+/* Important: even when faded visually, the pad must still receive touches
+   so the first tap wakes it up. pointer-events stays auto (default). */
+
+/* --- 2. Reserve a mobile-safe zone for text so nothing hides behind controls --- */
+
+/* 2a. Objective pill (top-right): on mobile landscape the fullscreen + PAD
+   buttons sit at the top-right, so cap its width and shift it down a row. */
+@media (max-width: 900px) and (max-height: 600px) {
+  .hud-objective {
+    max-width: min(58vw, 320px);
+    font-size: 12px;
+    padding: 6px 12px;
+    line-height: 1.25;
+    /* Let long text wrap rather than run under the FULL/PAD button */
+    white-space: normal;
+  }
+  #hud .hud-right {
+    /* Push objective below the fullscreen-btn zone (top-right ~46px tall) */
+    padding-top: 40px;
+  }
+
+  /* 2b. Subtitle / speaker line — the mirror said "1-2-3…" etc. Don't let it
+     slip under the A/B buttons or the d-pad. Pin above the control band. */
+  #subtitle {
+    bottom: calc(14px + 180px);          /* above d-pad + action cluster */
+    max-width: min(74vw, 560px);
+    font-size: 14px;
+    padding: 10px 16px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  #subtitle.monster { font-size: 18px; }
+
+  /* 2c. Bottom-left buttons: Notes + Tasks sit at bottom:2% left:2% by
+     default — directly where the D-pad lives on touch. Reroute them to
+     the TOP-LEFT strip under the HUD items on touch landscape. */
+  body.has-touch #btn-notes,
+  body.has-touch #btn-tasks {
+    bottom: auto;
+    top: 46px;                           /* below the coin/gem pills */
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+  body.has-touch #btn-notes { left: 2%; }
+  body.has-touch #btn-tasks { left: calc(2% + 96px); }
+
+  /* 2d. Collectibles button (bottom-right) lives under the A/B stack. Lift
+     it to the top strip on the right side, under the PAD/FULL buttons. */
+  body.has-touch #btn-collectibles {
+    bottom: auto;
+    right: 10px;
+    top: 46px;
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  /* 2e. HUD keycard / pickup item labels on the left — on very short
+     viewports wrap the label tighter so it doesn't bleed under the toast. */
+  #hud .hud-left .hud-item .hud-label {
+    font-size: 11px;
+  }
+}
+
+/* 2f. Even on mid-size mobile (portrait-pseudo-fullscreen landscape) give
+   the bottom subtitle the same lift so dialogue stays above the pad. */
+body.has-touch #subtitle {
+  bottom: calc(14px + 170px);
 }
