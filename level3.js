@@ -871,12 +871,19 @@
         speak(`Switch ${sw.label} is hot. ${3 - state.breakerProgress} to go.`, 2400);
       }
     } else {
-      // wrong switch — reset and buzz
+      // wrong switch — reset and buzz.
+      // Easy mode: show the mirror hint immediately on the first miss.
+      // Normal: show after 2 misses (original behaviour).
+      // Hard:   never auto-show; the player has to go back to the mirror.
       sfx('bad');
       state.breakerProgress = 0;
       state.switchesOn = [false, false, false];
       state.breakerFailed += 1;
-      const hint = state.breakerFailed >= 2 ? ` The mirror said: ${state.breakerOrder.map(i => i+1).join('—')}.` : '';
+      const tier = (window.__difficulty && window.__difficulty.id && window.__difficulty.id()) || 'normal';
+      const threshold = tier === 'easy' ? 1 : (tier === 'hard' ? Infinity : 2);
+      const hint = state.breakerFailed >= threshold
+        ? ` The mirror said: ${state.breakerOrder.map(i => i+1).join('—')}.`
+        : '';
       speak('Wrong switch. Everything resets.' + hint, 3000);
     }
   }
@@ -905,7 +912,23 @@
     }
     const lastSlot = state.fuseDigitOrder[3];
     known.push(`pos ${lastSlot + 1} = ${state.targetCode[lastSlot]} (fuse box)`);
-    codeSub.textContent = known.length ? 'Clues: ' + known.join(' · ') : 'Find the fuses for clues.';
+
+    // Easy-mode helper: once all 4 digits are known, spell the full code out
+    // as one readable string so a 7-year-old isn't juggling 'pos 1 = 7, pos 3 = 9…'.
+    const tier = (window.__difficulty && window.__difficulty.id && window.__difficulty.id()) || 'normal';
+    const allKnown = state.foundFuseDigit.every(d => d !== null);
+    if (tier === 'easy' && allKnown) {
+      codeSub.innerHTML =
+        'All clues found — the code is <b style="color:#ffd84a;letter-spacing:0.2em;">' +
+        state.targetCode.join(' ') + '</b>';
+    } else if (tier === 'hard') {
+      // Hard mode: show only that clues exist, not which position maps to what
+      codeSub.textContent = known.length
+        ? `${known.length} clue${known.length === 1 ? '' : 's'} found. Check your notes.`
+        : 'Find the fuses. Each one hides a digit.';
+    } else {
+      codeSub.textContent = known.length ? 'Clues: ' + known.join(' · ') : 'Find the fuses for clues.';
+    }
   }
   function openCode() {
     if (!state.breakerSolved) {

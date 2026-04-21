@@ -456,7 +456,21 @@ const SEARCH = {
   },
   sp_locker2: () => 'Empty except for a sour smell.',
   sp_locker3: () => {
-    addNote('Janitor scribble', "Code on the red locker:\n  first: highest hour\n  second: count of doors\n  third: smiles he wears");
+    // Clue difficulty scales with the selected tier:
+    //   easy   → the literal code (7-3-1) plus the riddle
+    //   normal → the riddle only (as originally designed)
+    //   hard   → a one-line cryptic nudge, player must work it all out
+    const tier = (window.__difficulty && window.__difficulty.id && window.__difficulty.id()) || 'normal';
+    if (tier === 'easy') {
+      addNote(
+        'Janitor scribble',
+        "Code on the red locker:  7 — 3 — 1\n\n(the janitor wrote it big so even HE could remember)\n\nhighest hour  \u2192 7\ncount of doors \u2192 3\nsmiles he wears \u2192 1"
+      );
+    } else if (tier === 'hard') {
+      addNote('Janitor scribble', 'Code on the red locker:\n  highest hour // count of doors // smiles he wears');
+    } else {
+      addNote('Janitor scribble', "Code on the red locker:\n  first: highest hour\n  second: count of doors\n  third: smiles he wears");
+    }
     return 'A scrap stuck inside the door.';
   },
   sp_crate: () => 'Just packing peanuts.',
@@ -796,22 +810,40 @@ const Puzzle = {
   demo() {
     this.showingDemo = true;
     document.querySelectorAll('.frame-btn').forEach(b => b.classList.remove('active'));
-    let i = 0;
-    const flash = () => {
-      if (i >= this.solution.length) {
-        this.showingDemo = false;
-        document.getElementById('puzzle-sub').textContent = 'Now repeat it.';
-        return;
-      }
-      const sym = this.solution[i];
-      const btn = document.querySelector(`.frame-btn[data-symbol="${sym}"]`);
-      btn.classList.add('active');
-      sfx('puzzle_seq');
-      setTimeout(() => btn.classList.remove('active'), 380);
-      i++;
-      setTimeout(flash, 600);
+    // Easy mode: show the sequence SLOWER and TWICE so a 7-year-old has a fair
+    // chance to learn it. Normal/hard: one pass at the original speed.
+    const tier = (window.__difficulty && window.__difficulty.id && window.__difficulty.id()) || 'normal';
+    const slow = tier === 'easy';
+    const passes = slow ? 2 : 1;
+    const litMs = slow ? 520 : 380;
+    const gapMs = slow ? 820 : 600;
+    let pass = 0;
+    const runPass = () => {
+      let i = 0;
+      const flash = () => {
+        if (i >= this.solution.length) {
+          pass += 1;
+          if (pass < passes) {
+            const sub = document.getElementById('puzzle-sub');
+            if (sub) sub.textContent = 'Once more…';
+            setTimeout(runPass, 700);
+          } else {
+            this.showingDemo = false;
+            document.getElementById('puzzle-sub').textContent = 'Now repeat it.';
+          }
+          return;
+        }
+        const sym = this.solution[i];
+        const btn = document.querySelector(`.frame-btn[data-symbol="${sym}"]`);
+        btn.classList.add('active');
+        sfx('puzzle_seq');
+        setTimeout(() => btn.classList.remove('active'), litMs);
+        i++;
+        setTimeout(flash, gapMs);
+      };
+      setTimeout(flash, 300);
     };
-    setTimeout(flash, 300);
+    runPass();
   },
   press(sym) {
     if (this.showingDemo) return;
@@ -873,6 +905,20 @@ const Combo = {
     state.scene = 'combo';
     document.getElementById('overlay-combo').classList.remove('hidden');
     document.getElementById('combo-status').textContent = '';
+
+    // Easy-mode helper: write the literal code above the dials so a 7-year-old
+    // can solve without the lateral-thinking riddle.
+    const tier = (window.__difficulty && window.__difficulty.id && window.__difficulty.id()) || 'normal';
+    const sub = document.getElementById('combo-sub');
+    if (sub) {
+      if (tier === 'easy') {
+        sub.innerHTML = 'Easy-mode hint: the code is <b style="color:#ffd84a;letter-spacing:0.15em;">' + state.comboCode.split('').join(' — ') + '</b>';
+      } else if (tier === 'hard') {
+        sub.textContent = 'Find the 3-digit code. No hints.';
+      } else {
+        sub.textContent = 'Find the 3-digit code somewhere in the rooms.';
+      }
+    }
     this.render();
   },
   close() {
