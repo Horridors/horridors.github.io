@@ -403,6 +403,7 @@ const SEARCH = {
     spawnAt(f.x + f.w/2, f.y + f.h + 10, {
       id: 'keycard', label: 'RED KEYCARD', icon: 'keycard', prompt: 'Pick up RED keycard', onPickup() {
         state.hasKeycard = true;
+        try { window.HorridorsHints && window.HorridorsHints.setProgressKey('l1-keycard'); } catch(e) {}
         document.getElementById('hud-keycard').classList.add('has');
         speak('RED KEYCARD. Something woke up.', 3200);
         sfx('pickup');
@@ -511,6 +512,7 @@ const SEARCH = {
     spawnAt(SR.left + 120, SR.top + 510, {
       id: 'lib_key', label: 'BRASS KEY (Library)', icon: 'key_brass', prompt: 'Pick up BRASS KEY', onPickup() {
         state.hasLibKey = true;
+        try { window.HorridorsHints && window.HorridorsHints.setProgressKey('l1-libkey'); } catch(e) {}
         doors.find(d=>d.id==='lib').locked = false;
         document.getElementById('hud-key2').classList.add('has');
         speak('A brass key. Heavy.', 2400);
@@ -597,7 +599,7 @@ function toggleNotes() {
   if (overlayNotes.classList.contains('hidden')) {
     notesListEl.innerHTML = '';
     if (state.notes.length === 0) {
-      notesListEl.innerHTML = '<div class="notes-empty">No notes yet. Search drawers, shelves, and beds.</div>';
+      notesListEl.innerHTML = '<div class="notes-empty">No clues yet. Search drawers, shelves, and beds.</div>';
     } else {
       for (const n of state.notes) {
         const row = document.createElement('div');
@@ -759,6 +761,7 @@ function interact(target) {
     const result = handler(f);
     if (result !== null) {
       state.searched.add(f.id);
+      try { window.HorridorsHints && window.HorridorsHints.setProgressKey('l1-search'); } catch(e) {}
       sfx('rummage');
       if (result) speak(result, 3500);
     }
@@ -777,6 +780,7 @@ function interact(target) {
     }
     if (!state.doorsOpen.scanner) {
       state.doorsOpen.scanner = true;
+      try { window.HorridorsHints && window.HorridorsHints.setProgressKey('l1-escape'); } catch(e) {}
       sfx('unlock');
       speak('Scanner: ACCESS GRANTED. Run.', 3500);
       setObjective('Reach the chest in the treasure room.');
@@ -868,6 +872,7 @@ const Puzzle = {
   },
   solved() {
     state.puzzleSolved = true;
+    try { window.HorridorsHints && window.HorridorsHints.setProgressKey('l1-puzzle'); } catch(e) {}
     document.getElementById('puzzle-status').textContent = 'CORRECT.';
     sfx('unlock');
     if (typeof refreshChecklist === 'function') refreshChecklist();
@@ -944,6 +949,7 @@ const Combo = {
       status.className = 'combo-status good';
       sfx('unlock');
       state.comboSolved = true;
+      try { window.HorridorsHints && window.HorridorsHints.setProgressKey('l1-combo'); } catch(e) {}
       setTimeout(()=> {
         this.close();
         // Spawn coins + a flashlight battery + a sticker
@@ -1122,7 +1128,7 @@ function endLevel() {
   if (window.__walletCommitLevelRun) window.__walletCommitLevelRun();
   const rewards = [];
   rewards.push('🪙 ' + state.coins + ' Corridor Tokens');
-  if (state.notes.length > 0) rewards.push('📜 ' + state.notes.length + ' Notes Found');
+  if (state.notes.length > 0) rewards.push('📜 ' + state.notes.length + ' Clues Found');
   rewards.push('🎖️ Door One Survivor');
   rewards.push('🧷 Grinpatch Sticker');
   if (state.searched.size >= 10) rewards.push('🏅 Thorough Searcher');
@@ -1157,6 +1163,17 @@ function startPlay() {
   speak('Welcome, little wanderer. Search every drawer.', 4000);
   setObjective('Explore. Something here opens other rooms.');
   registerL1Tasks();
+  // Hint system: register active level, show first-time tutorial on easy/normal
+  try {
+    if (window.HorridorsHints) {
+      window.HorridorsHints.setLevel(1);
+      // Reset any stale 'done' keys when L1 starts fresh
+    }
+    if (window.HorridorsTutorial) {
+      // Slight delay so the tutorial appears AFTER the title overlay finishes hiding
+      setTimeout(() => { try { window.HorridorsTutorial.maybeShow(); } catch(e) {} }, 350);
+    }
+  } catch (e) {}
 }
 
 // ---------- Checklist (Tasks panel) ----------
@@ -2269,3 +2286,137 @@ window.addEventListener('keydown', (e) => {
 
 // Debug
 window.__game = { state, player, monster, hollow, items, furniture, walls, doors, ROOMS, TREASURE, Puzzle, Combo };
+
+// =========================================================================
+// AUTO-SAVE WIRING (added after Ellie's feedback — game now persists progress)
+// =========================================================================
+// HorridorsSave already auto-loads on page boot and applies progress + wallet
+// state. Here we connect the title-screen Continue button + save triggers.
+function __setupContinueButton() {
+  const Save = window.HorridorsSave;
+  if (!Save) return;
+  const btnC = document.getElementById('btn-continue');
+  const btnLbl = document.getElementById('btn-continue-label');
+  const btnNew = document.getElementById('btn-newgame');
+  if (!btnC || !btnNew) return;
+
+  function refresh() {
+    if (!Save.hasSave()) {
+      btnC.style.display = 'none';
+      btnNew.style.display = 'none';
+      return;
+    }
+    const snap = Save.load();
+    if (!snap) { btnC.style.display = 'none'; btnNew.style.display = 'none'; return; }
+    // Pick the level to resume: highest in-progress, else highest completed+1
+    let resumeN = 1;
+    for (let n = 8; n >= 1; n--) {
+      if (snap.levelInProgress && snap.levelInProgress[n]) { resumeN = n; break; }
+    }
+    if (resumeN === 1 && snap.levelsCompleted) {
+      let best = 0;
+      for (let n = 1; n <= 8; n++) if (snap.levelsCompleted[n]) best = n;
+      if (best > 0 && best < 8) resumeN = best + 1;
+    }
+    btnC.dataset.resumeLevel = String(resumeN);
+    if (btnLbl) btnLbl.textContent = '\u2014 Level ' + resumeN;
+    btnC.style.display = '';
+    btnNew.style.display = '';
+  }
+
+  btnC.addEventListener('click', () => {
+    const n = parseInt(btnC.dataset.resumeLevel || '1', 10);
+    // Use the existing jumpToLevel — it'll show resume prompt or launch fresh
+    if (window.__jumpToLevel) window.__jumpToLevel(n);
+  });
+
+  btnNew.addEventListener('click', () => {
+    if (!confirm('Start a brand-new game? This will erase your saved progress.')) return;
+    Save.clear();
+    // Reset in-memory progress + wallet so a fresh L1 truly starts clean
+    window.__levelInProgress = {1:false,2:false,3:false,4:false,5:false,6:false,7:false,8:false};
+    window.__levelsCompleted = {};
+    if (window.HorridorsWallet && window.HorridorsWallet.reset) {
+      try { window.HorridorsWallet.reset(); } catch(e) {}
+    }
+    refresh();
+    // Trigger the start button as if they tapped "Enter the Corridor" fresh
+    const btnStart = document.getElementById('btn-start');
+    if (btnStart) btnStart.click();
+  });
+
+  refresh();
+  // Re-check whenever the title overlay is shown (e.g. after returning to menu)
+  const titleEl = document.getElementById('overlay-title');
+  if (titleEl) {
+    const mo = new MutationObserver(() => {
+      if (!titleEl.classList.contains('hidden')) refresh();
+    });
+    mo.observe(titleEl, { attributes: true, attributeFilter: ['class'] });
+  }
+}
+
+// Save triggers: anything that meaningfully changes progress
+// 1) Whenever __levelInProgress[n] flips to true (level actually started)
+// 2) When a level's end overlay shows (level completed)
+// 3) On combo lock solved, picture puzzle solved, keycard found (mid-L1 milestones)
+function __setupSaveTriggers() {
+  const Save = window.HorridorsSave;
+  if (!Save) return;
+
+  // Wrap __launchFresh and __launchResume to save right after they fire
+  const origFresh = window.__launchFresh;
+  if (origFresh && !origFresh.__savePatched) {
+    const wrapped = function(n) {
+      origFresh(n);
+      try { Save.save(); } catch(e) {}
+    };
+    wrapped.__savePatched = true;
+    window.__launchFresh = wrapped;
+  }
+
+  // L1 mid-level milestones — wallet HUD coin pickups already trigger updateHUD;
+  // we hook addCoins so any coin pickup writes a save (cheap, debounced).
+  const W = window.HorridorsWallet;
+  if (W && W.addCoins && !W.__saveWrapped) {
+    const origAdd = W.addCoins;
+    let pending = null;
+    W.addCoins = function(n) {
+      origAdd.call(W, n);
+      if (pending) clearTimeout(pending);
+      pending = setTimeout(() => { try { Save.save(); } catch(e) {} pending = null; }, 400);
+    };
+    W.__saveWrapped = true;
+  }
+
+  // Each end overlay: when shown, mark complete + save
+  const endOverlays = [
+    { id: 'overlay-end',     n: 1 },
+    { id: 'overlay-l2-end',  n: 2 },
+    { id: 'overlay-l3-end',  n: 3 },
+    { id: 'overlay-l4-end',  n: 4 },
+    { id: 'overlay-l5-end',  n: 5 },
+    { id: 'overlay-l6-end',  n: 6 },
+    { id: 'overlay-l7-end',  n: 7 },
+    { id: 'overlay-l8-end',  n: 8 },
+  ];
+  for (const { id, n } of endOverlays) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const mo = new MutationObserver(() => {
+      if (!el.classList.contains('hidden')) {
+        try { Save.markCompleted(n); } catch(e) {}
+      }
+    });
+    mo.observe(el, { attributes: true, attributeFilter: ['class'] });
+  }
+}
+
+// Run setup after the DOM and other modules are ready.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => { __setupContinueButton(); __setupSaveTriggers(); }, 50);
+  });
+} else {
+  setTimeout(() => { __setupContinueButton(); __setupSaveTriggers(); }, 50);
+}

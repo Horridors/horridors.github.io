@@ -110,11 +110,11 @@
           </div>
         </div>
 
-        <!-- Notes drawer -->
-        <button id="btn-notes" class="ui-layer" aria-label="Notes (N)">📓 Notes (N)</button>
+        <!-- Clues drawer (was 'Notes' — renamed for clarity per user feedback) -->
+        <button id="btn-notes" class="ui-layer" aria-label="Clues (N)">🔍 Clues (N)</button>
         <div id="overlay-notes" class="overlay hidden">
           <div class="overlay-content notes-panel">
-            <div class="notes-title">Things you've found</div>
+            <div class="notes-title">Clues you've found</div>
             <div id="notes-list" class="notes-list"></div>
             <button id="btn-notes-close" class="btn-ghost">Close (N)</button>
           </div>
@@ -333,7 +333,11 @@
               Search every drawer, every locker, every shelf.<br />
               And don't make Grinpatch jealous.
             </div>
-            <button id="btn-start" class="btn-primary">Enter the Corridor</button>
+            <div class="start-buttons" style="display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:6px;">
+              <button id="btn-continue" class="btn-primary" style="display:none;background:linear-gradient(180deg,#5a8d4d,#3a6e2e) !important;border-color:#7ee2a8;">▶ Continue <span id="btn-continue-label" style="opacity:0.85;font-weight:500;font-size:13px;"></span></button>
+              <button id="btn-start" class="btn-primary">Enter the Corridor</button>
+              <button id="btn-newgame" class="btn-ghost" style="display:none;font-size:12px;opacity:0.7;padding:6px 12px;">Start a New Game (clears save)</button>
+            </div>
             <div class="level-jump">
               <div class="level-jump-label">Jump to a level (testing)</div>
               <div class="level-jump-row">
@@ -349,7 +353,7 @@
             </div>
             <div class="controls-hint">
               <div><b>WASD</b> or <b>Arrow Keys</b> to move</div>
-              <div><b>E</b> or <b>Space</b> to interact · <b>F</b> flashlight · <b>N</b> notes · <b>M</b> mute</div>
+              <div><b>E</b> or <b>Space</b> to interact · <b>F</b> flashlight · <b>N</b> clues · <b>M</b> mute</div>
             </div>
           </div>
         </div>
@@ -487,7 +491,7 @@
               <b style="color:#7ee2a8">How to escape:</b>
               <ol style="margin:6px 0 0 18px;padding:0;">
                 <li>Find <b>Inky Bin</b> — search the big tank in the <b>Aquarium</b> (left of spawn).</li>
-                <li>Find the <b>pipe order</b> (hub board + aquarium notes) and use the <b>Pipe Sequencer</b>.</li>
+                <li>Find the <b>pipe order</b> (hub board + aquarium clues) and use the <b>Pipe Sequencer</b>.</li>
                 <li>Collect <b>3 valve handles</b> — one in each room.</li>
                 <li>Read <b>3 gauges</b> — red, blue, yellow (values change each run).</li>
                 <li>Open the <b>Control Panel</b> in the Control Room and dial in the readings.</li>
@@ -498,7 +502,7 @@
             <button id="btn-l2-start" class="btn-primary">Step Into the Water</button>
             <div class="controls-hint">
               <div><b>WASD</b> move · <b>E/Space</b> interact · <b>F</b> flashlight</div>
-              <div><b>N</b> notes · <b>M</b> mute · <b>Shift</b> sprint short burst</div>
+              <div><b>N</b> clues · <b>M</b> mute · <b>Shift</b> sprint short burst</div>
             </div>
           </div>
         </div>
@@ -1277,6 +1281,8 @@
     <script src="./shared-wallet.js"></script>
     <script src="./shared-sprites.js"></script>
     <script src="./difficulty.js"></script>
+    <script src="./save.js"></script>
+    <script src="./hints.js"></script>
     <script src="./certificate.js"></script>
     <script src="./game.js" type="module"></script>
     <script src="./level2.js" type="module"></script>

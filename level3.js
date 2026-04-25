@@ -924,7 +924,7 @@
     } else if (tier === 'hard') {
       // Hard mode: show only that clues exist, not which position maps to what
       codeSub.textContent = known.length
-        ? `${known.length} clue${known.length === 1 ? '' : 's'} found. Check your notes.`
+        ? `${known.length} clue${known.length === 1 ? '' : 's'} found. Check your Clues.`
         : 'Find the fuses. Each one hides a digit.';
     } else {
       codeSub.textContent = known.length ? 'Clues: ' + known.join(' · ') : 'Find the fuses for clues.';

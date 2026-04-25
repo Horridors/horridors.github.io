@@ -1479,7 +1479,7 @@
     });
     // Step 2: solve pipe cipher
     steps.push({
-      text: s.cipherSolved ? 'Pipes primed' : 'Find the pipe order (hub board + aquarium notes)',
+      text: s.cipherSolved ? 'Pipes primed' : 'Find the pipe order (hub board + aquarium clues)',
       done: !!s.cipherSolved,
       active: !!s.hasSquidley && !s.cipherSolved,
     });
@@ -1531,7 +1531,7 @@
       return 'Hint: head LEFT to the Aquarium. Search the big tank (press E).';
     }
     if (!s.cipherSolved) {
-      return 'Hint: read the hub notice board and Aquarium notes for the pipe order, then use the Pipe Sequencer.';
+      return 'Hint: read the hub notice board and Aquarium clues for the pipe order, then use the Pipe Sequencer.';
     }
     const valves = (s.hasValveRed?1:0) + (s.hasValveBlue?1:0) + (s.hasValveYellow?1:0);
     const gauges = (s.hasGaugeRed?1:0) + (s.hasGaugeBlue?1:0) + (s.hasGaugeYellow?1:0);
@@ -1929,7 +1929,7 @@
     const rewards = [];
     rewards.push('🦑 Friend of Inky Bin');
     rewards.push('🪙 ' + state.coins + ' Sublevel Coins');
-    if (state.notes.length > 0) rewards.push('📜 ' + state.notes.length + ' Notes Found');
+    if (state.notes.length > 0) rewards.push('📜 ' + state.notes.length + ' Clues Found');
     if (state.searched.size >= 8) rewards.push('🏅 Thorough Searcher');
     if (state.searched.size >= 14) rewards.push('🌟 Every Drawer Opened');
     if (state.hasGaugeRed && state.hasGaugeBlue && state.hasGaugeYellow) rewards.push('🎖️ Master Plumber');
