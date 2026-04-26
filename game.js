@@ -1639,6 +1639,10 @@ function render() {
   drawItems();
   drawTreasureRoom();
   drawScannerDoor();
+  // Overlay pass: halo + ENTER arrow + room labels go ON TOP of furniture
+  // so they're never hidden by shelves/workbenches/etc inside the room.
+  drawDoorOverlays();
+  drawScannerDoorOverlay();
   drawPlayer();
   if (monster.active) drawMonster();
   if (hollow.active) drawHollow();
@@ -1724,57 +1728,227 @@ function drawWalls() {
   }
 }
 
+// Per-room palettes used by both the door body and the overlay pass.
+function _doorPalette(d) {
+  let frameColor = '#3a2418';
+  let panelColor = '#6a4628';
+  let accentColor = '#ffd94a';
+  if (d.id === 'toy')    { frameColor = '#5a3010'; panelColor = d.locked ? '#7a4a18' : '#d68a30'; accentColor = '#ffe070'; }
+  if (d.id === 'puzzle') { frameColor = '#1a2440'; panelColor = d.locked ? '#2a3856' : '#5078b8';  accentColor = '#a8d4ff'; }
+  if (d.id === 'supply') { frameColor = '#3a3018'; panelColor = d.locked ? '#4a4030' : '#a87838';  accentColor = '#ffd06a'; }
+  if (d.id === 'lib')    { frameColor = '#102818'; panelColor = d.locked ? '#1f3a2a' : '#4a8e5a';  accentColor = '#a0ffb8'; }
+  return { frameColor, panelColor, accentColor };
+}
+
 function drawDoors() {
+  // First pass: door body (frame + panel + knob). Halo, arrow, lock badge
+  // and room name are drawn LATER in drawDoorOverlays() so they sit ON TOP
+  // of any furniture (shelves, workbenches) inside the room.
   for (const d of doors) {
     const r = doorRect(d);
+    const { frameColor, panelColor, accentColor } = _doorPalette(d);
+
+    // ---- OPEN: dark threshold + faint glow so they still see entry point ----
     if (d.open) {
-      // Open doorway: dark threshold
+      ctx.save();
+      ctx.shadowColor = accentColor;
+      ctx.shadowBlur = 14;
       ctx.fillStyle = '#0a0a10';
       ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.restore();
       continue;
     }
-    let color = '#5a3a2a';
-    if (d.id === 'toy') color = d.locked ? '#7a4a18' : '#a87a30';
-    if (d.id === 'puzzle') color = '#3a4a6a';
-    if (d.id === 'supply') color = '#4a4030';
-    if (d.id === 'lib') color = d.locked ? '#1f3a2a' : '#3a6a4a';
-    ctx.fillStyle = color;
-    ctx.fillRect(r.x, r.y - 30, r.w, 40);
-    ctx.strokeStyle = '#000';
-    ctx.strokeRect(r.x + 0.5, r.y - 30 + 0.5, r.w - 1, 40 - 1);
-    // Knob
-    ctx.fillStyle = '#ffd94a';
+
+    // ---- Door frame (outer, taller, with shadow) ----
+    const frameTop = r.y - 60;
+    const frameH = 70;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowOffsetY = 4;
+    ctx.shadowBlur = 8;
+    ctx.fillStyle = frameColor;
+    ctx.fillRect(r.x - 4, frameTop - 4, r.w + 8, frameH + 4);
+    ctx.restore();
+
+    // ---- Door panel ----
+    ctx.fillStyle = panelColor;
+    ctx.fillRect(r.x, frameTop, r.w, frameH);
+
+    // Wood grain / panel divider
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(r.x + 0.5, frameTop + 0.5, r.w - 1, frameH - 1);
     ctx.beginPath();
-    ctx.arc(r.x + r.w - 8, r.y - 10, 3, 0, Math.PI * 2);
+    ctx.moveTo(r.x + 8, frameTop + 12);
+    ctx.lineTo(r.x + r.w - 8, frameTop + 12);
+    ctx.moveTo(r.x + 8, frameTop + frameH - 14);
+    ctx.lineTo(r.x + r.w - 8, frameTop + frameH - 14);
+    ctx.stroke();
+
+    // ---- Knob (gold) ----
+    ctx.fillStyle = accentColor;
+    ctx.shadowColor = accentColor;
+    ctx.shadowBlur = d.locked ? 0 : 8;
+    ctx.beginPath();
+    ctx.arc(r.x + r.w - 12, frameTop + frameH - 22, 4, 0, Math.PI * 2);
     ctx.fill();
-    // Lock symbol if locked
-    if (d.locked) {
-      ctx.fillStyle = '#ff5566';
-      ctx.fillRect(r.x + 4, r.y - 18, 8, 6);
+    ctx.shadowBlur = 0;
+  }
+}
+
+function drawDoorOverlays() {
+  // Second pass: halo, ↓ arrow, lock badge, and room label.
+  // Drawn AFTER furniture/items so nothing inside the room can hide them.
+  const t = performance.now() / 1000;
+  for (const d of doors) {
+    if (d.open) continue;
+    const r = doorRect(d);
+    const cx = r.x + r.w / 2;
+    const frameTop = r.y - 60;
+    const frameH = 70;
+    const { accentColor } = _doorPalette(d);
+
+    // ---- Glow halo (only for unlocked doors — "come over here") ----
+    if (!d.locked) {
+      const pulse = 0.6 + 0.4 * Math.sin(t * 3);
+      ctx.save();
+      ctx.shadowColor = accentColor;
+      ctx.shadowBlur = 20 + pulse * 10;
+      ctx.fillStyle = accentColor;
+      ctx.globalAlpha = 0.22 + pulse * 0.18;
+      ctx.fillRect(r.x - 8, r.y - 70, r.w + 16, 80);
+      ctx.restore();
     }
-    // Plain room name above the door — no requirement hints
+
+    // ---- Lock badge (locked) OR ↓ arrow (unlocked) ----
+    if (d.locked) {
+      // Red disk + padlock
+      ctx.save();
+      ctx.fillStyle = '#ff4a5a';
+      ctx.shadowColor = 'rgba(0,0,0,0.6)';
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.arc(cx, frameTop + 22, 11, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      // Tiny padlock body
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(cx - 4, frameTop + 20, 8, 6);
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(cx, frameTop + 18, 3, Math.PI, 0);
+      ctx.stroke();
+      ctx.restore();
+    } else {
+      // Bouncing ↓ ENTER arrow above the door
+      const bounce = Math.sin(t * 4) * 4;
+      ctx.save();
+      ctx.fillStyle = accentColor;
+      ctx.shadowColor = accentColor;
+      ctx.shadowBlur = 10;
+      ctx.font = 'bold 22px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('↓', cx, frameTop - 18 + bounce);
+      ctx.restore();
+    }
+
+    // ---- Room name above the door (with halo for legibility) ----
+    ctx.save();
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 12px Inter, sans-serif';
-    ctx.fillText(d.room.name.toUpperCase(), r.x + r.w/2, r.y - 42);
+    ctx.font = 'bold 13px Inter, sans-serif';
+    ctx.shadowColor = 'rgba(0,0,0,0.95)';
+    ctx.shadowBlur = 8;
+    ctx.fillStyle = d.locked ? '#cfcfd8' : '#ffffff';
+    ctx.fillText(d.room.name.toUpperCase(), cx, frameTop - 36);
+    if (d.locked) {
+      ctx.font = 'bold 10px Inter, sans-serif';
+      ctx.fillStyle = '#ff8090';
+      ctx.fillText('LOCKED', cx, frameTop - 24);
+    }
+    ctx.restore();
   }
 }
 
 function drawScannerDoor() {
-  const r = { x: CORR_RIGHT - 6, y: CORR_TOP + 30, w: 18, h: 120 };
-  ctx.fillStyle = state.doorsOpen.scanner ? '#0a0a10' : (state.chase.expired ? '#1a0a10' : '#3a1a1a');
+  // The exit door — made dramatic and obvious for kids.
+  const t = performance.now() / 1000;
+  const r = { x: CORR_RIGHT - 10, y: CORR_TOP + 24, w: 26, h: 132 };
+  const open = state.doorsOpen.scanner;
+  const expired = state.chase.expired;
+  const ready = state.hasKeycard && !open;
+
+  // Outer frame
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.8)';
+  ctx.shadowBlur = 8;
+  ctx.fillStyle = open ? '#1a3a4a' : (expired ? '#1a0a10' : '#2a1418');
+  ctx.fillRect(r.x - 4, r.y - 4, r.w + 8, r.h + 8);
+  ctx.restore();
+
+  // Door body
+  ctx.fillStyle = open ? '#0a0a10' : (expired ? '#1a0a10' : '#3a1a1a');
   ctx.fillRect(r.x, r.y, r.w, r.h);
-  if (!state.doorsOpen.scanner) {
-    // Red scanner panel — goes dark when expired
-    ctx.fillStyle = state.chase.expired ? '#2a0a10' : '#ff4a5a';
-    ctx.fillRect(r.x + 4, r.y + 50, 10, 20);
+
+  if (!open) {
+    // Pulsing keycard reader — green when ready, red when not
+    const pulse = 0.6 + 0.4 * Math.sin(t * 4);
+    const readerColor = ready ? '#5cff8a' : (expired ? '#2a0a10' : '#ff4a5a');
+    ctx.save();
+    ctx.shadowColor = readerColor;
+    ctx.shadowBlur = 8 + (ready || !expired ? pulse * 12 : 0);
+    ctx.fillStyle = readerColor;
+    ctx.fillRect(r.x + 7, r.y + 50, 12, 24);
+    ctx.restore();
+    // Slot for the card
     ctx.fillStyle = '#100';
-    ctx.fillRect(r.x + 6, r.y + 56, 6, 8);
+    ctx.fillRect(r.x + 9, r.y + 58, 8, 8);
   }
-  ctx.fillStyle = '#cfcfe0';
-  ctx.font = 'bold 10px Inter, sans-serif';
+}
+
+function drawScannerDoorOverlay() {
+  // Halo + arrow + labels for the scanner door, drawn AFTER furniture/items.
+  const t = performance.now() / 1000;
+  const r = { x: CORR_RIGHT - 10, y: CORR_TOP + 24, w: 26, h: 132 };
+  const open = state.doorsOpen.scanner;
+  const ready = state.hasKeycard && !open;
+
+  if (!open && ready) {
+    // Big halo + bouncing arrow + "USE KEYCARD" prompt
+    const bounce = Math.sin(t * 5) * 6;
+    ctx.save();
+    ctx.shadowColor = '#5cff8a';
+    ctx.shadowBlur = 28;
+    ctx.fillStyle = 'rgba(92,255,138,0.18)';
+    ctx.fillRect(r.x - 30, r.y - 40, r.w + 60, r.h + 60);
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = '#5cff8a';
+    ctx.font = 'bold 28px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('→', r.x - 28 + bounce, r.y + 70);
+    ctx.font = 'bold 11px Inter, sans-serif';
+    ctx.fillStyle = '#bdffce';
+    ctx.shadowBlur = 6;
+    ctx.fillText('USE KEYCARD', r.x + r.w/2, r.y + r.h + 18);
+    ctx.restore();
+  }
+
+  // SCANNER label
+  ctx.save();
+  ctx.fillStyle = open ? '#5cff8a' : '#cfcfe0';
+  ctx.font = 'bold 11px Inter, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('SCANNER', r.x + r.w/2, r.y - 8);
+  ctx.shadowColor = 'rgba(0,0,0,0.9)';
+  ctx.shadowBlur = 4;
+  ctx.fillText('SCANNER', r.x + r.w/2, r.y - 10);
+  if (open) {
+    ctx.fillStyle = '#5cff8a';
+    ctx.font = 'bold 9px Inter, sans-serif';
+    ctx.fillText('OPEN →', r.x + r.w/2, r.y + r.h + 14);
+  }
+  ctx.restore();
 }
 
 function drawTreasureRoom() {
