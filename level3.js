@@ -916,7 +916,11 @@
     // Easy-mode helper: once all 4 digits are known, spell the full code out
     // as one readable string so a 7-year-old isn't juggling 'pos 1 = 7, pos 3 = 9…'.
     const tier = (window.__difficulty && window.__difficulty.id && window.__difficulty.id()) || 'normal';
-    const allKnown = state.foundFuseDigit.every(d => d !== null);
+    // foundFuseDigit is an object {0,1,2}, not an Array — iterate explicitly.
+    let allKnown = true;
+    for (let f = 0; f < 3; f++) {
+      if (state.foundFuseDigit[f] === null || state.foundFuseDigit[f] === undefined) { allKnown = false; break; }
+    }
     if (tier === 'easy' && allKnown) {
       codeSub.innerHTML =
         'All clues found — the code is <b style="color:#ffd84a;letter-spacing:0.2em;">' +
@@ -1285,21 +1289,27 @@
   function drawLighting() {
     ensureMask();
     const m = _maskCtx;
-    // Fill darkness (a touch lighter than before so the world is visible)
+    // Difficulty-aware darkness so a 7-year-old on EASY can actually see furniture.
+    // EASY: dim, not pitch-black. NORMAL: moody. HARD: spooky.
+    const _ltier = (window.__difficulty && window.__difficulty.id && window.__difficulty.id()) || 'normal';
+    const darkAlpha = _ltier === 'easy' ? 0.55 : (_ltier === 'hard' ? 0.82 : 0.72);
+    const ambientRadius = _ltier === 'easy' ? 200 : (_ltier === 'hard' ? 90 : 120);
+    const coneRangeMul = _ltier === 'easy' ? 1.4 : (_ltier === 'hard' ? 0.85 : 1.0);
+
     m.globalCompositeOperation = 'source-over';
-    m.fillStyle = 'rgba(0,0,0,0.82)';
+    m.fillStyle = `rgba(0,0,0,${darkAlpha})`;
     m.fillRect(0, 0, VIEW_W, VIEW_H);
 
     // Cone of flashlight (in screen space)
     if (state.flashlightOn && state.flashlightCharge > 0) {
       const sx = player.x + player.w/2 - cam.x;
       const sy = player.y + player.h/2 - cam.y;
-      const range = 220 * (0.55 + 0.45 * state.flashlightCharge);
+      const range = 220 * coneRangeMul * (0.55 + 0.45 * state.flashlightCharge);
       const fov = Math.PI / 3.4;
       m.globalCompositeOperation = 'destination-out';
       const grad = m.createRadialGradient(sx, sy, 10, sx, sy, range);
       grad.addColorStop(0, 'rgba(0,0,0,1)');
-      grad.addColorStop(0.55, 'rgba(0,0,0,0.85)');
+      grad.addColorStop(0.55, 'rgba(0,0,0,0.9)');
       grad.addColorStop(1, 'rgba(0,0,0,0)');
       m.fillStyle = grad;
       m.beginPath();
@@ -1308,17 +1318,36 @@
       m.closePath();
       m.fill();
     }
-    // Bigger ambient glow around player (always visible)
+    // Bigger ambient glow around player (always visible) — sized for difficulty.
     {
       const sx = player.x + player.w/2 - cam.x;
       const sy = player.y + player.h/2 - cam.y;
       m.globalCompositeOperation = 'destination-out';
-      const g = m.createRadialGradient(sx, sy, 6, sx, sy, 90);
-      g.addColorStop(0, 'rgba(0,0,0,0.85)');
-      g.addColorStop(0.55, 'rgba(0,0,0,0.45)');
+      const g = m.createRadialGradient(sx, sy, 6, sx, sy, ambientRadius);
+      g.addColorStop(0, 'rgba(0,0,0,1)');
+      g.addColorStop(0.55, 'rgba(0,0,0,0.6)');
       g.addColorStop(1, 'rgba(0,0,0,0)');
       m.fillStyle = g;
-      m.beginPath(); m.arc(sx, sy, 90, 0, Math.PI*2); m.fill();
+      m.beginPath(); m.arc(sx, sy, ambientRadius, 0, Math.PI*2); m.fill();
+    }
+
+    // EASY ONLY: faint outline glow on every UNSEARCHED furniture so a 7-year-old
+    // can spot interactive things even in the gloom.
+    if (_ltier === 'easy') {
+      m.globalCompositeOperation = 'destination-out';
+      for (const f of furniture) {
+        if (f.searched) continue;
+        const fx = f.x + f.w/2 - cam.x;
+        const fy = f.y + f.h/2 - cam.y;
+        // Skip if off-screen
+        if (fx < -60 || fx > VIEW_W + 60 || fy < -60 || fy > VIEW_H + 60) continue;
+        const fg = m.createRadialGradient(fx, fy, 4, fx, fy, 55);
+        fg.addColorStop(0, 'rgba(0,0,0,0.85)');
+        fg.addColorStop(0.5, 'rgba(0,0,0,0.45)');
+        fg.addColorStop(1, 'rgba(0,0,0,0)');
+        m.fillStyle = fg;
+        m.beginPath(); m.arc(fx, fy, 55, 0, Math.PI*2); m.fill();
+      }
     }
 
     // Always reveal Expression's eye (so the player can find him in the dark)
@@ -1709,8 +1738,10 @@
     if (!running) return;
     const dt = Math.min(0.05, (now - lastT) / 1000);
     lastT = now;
-    update(dt);
-    render();
+    // Defensive: if any frame throws, log it but DON'T kill the rAF loop.
+    // Without this, a single exception (e.g. in an overlay refresh) freezes the game.
+    try { update(dt); } catch (err) { console.error('[L3 update]', err); }
+    try { render(); } catch (err) { console.error('[L3 render]', err); }
     justPressed.clear();
     _l3TaskTick += dt;
     if (_l3TaskTick >= 0.5) { _l3TaskTick = 0; if (window.refreshChecklist) window.refreshChecklist(); }
