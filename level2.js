@@ -116,6 +116,7 @@
     sprint: 0,              // sprint meter 0..1 (for shift burst)
     chase: { active: false, t: 0, duration: 0 },
     alarmFlash: 0,
+    hudTitleShownAt: 0,     // timestamp when L2 entered play — used to auto-hide the title banner
   };
 
   // ---------- Audio (reuse L1's audioCtx if exposed) ----------
@@ -1554,60 +1555,68 @@
   // ---------- HUD (drawn on canvas) ----------
   function drawHUD() {
     ctx.save();
-    // Top bar background — taller to fit objective checklist
-    const HUD_H = 110;
-    ctx.fillStyle = 'rgba(0, 10, 14, 0.6)';
+    // === CLEANER HUD (v1.1.2) ===
+    // Title banner only fades in for the first ~4s after entering Play.
+    // Inventory icons sit in a slim bar with no text labels (icons-only).
+    // Objectives are condensed to ONE active step on the right (full list is
+    // in the Tasks drawer (T)).
+    const now = performance.now();
+    if (!state.hudTitleShownAt) state.hudTitleShownAt = now;
+    const titleAge = (now - state.hudTitleShownAt) / 1000;
+    const titleAlpha = titleAge < 3 ? 1 : Math.max(0, 1 - (titleAge - 3) / 1.0);
+    // Bar height shrinks once title fades — saves ~30px of playfield real estate.
+    const HUD_H = titleAlpha > 0.05 ? 76 : 44;
+    ctx.fillStyle = 'rgba(0, 10, 14, 0.55)';
     ctx.fillRect(0, 0, VIEW_W, HUD_H);
-    ctx.strokeStyle = 'rgba(126,226,168,0.35)';
+    ctx.strokeStyle = 'rgba(126,226,168,0.25)';
     ctx.beginPath(); ctx.moveTo(0, HUD_H); ctx.lineTo(VIEW_W, HUD_H); ctx.stroke();
 
     ctx.font = '600 13px Inter, system-ui, sans-serif';
     ctx.textBaseline = 'middle';
 
-    // Inventory icons (bottom row of the HUD bar)
-    const INV_Y = 94;
-    let ix = 10;
-    const drawSlot = (icon, have, label) => {
-      ctx.globalAlpha = have ? 1 : 0.3;
+    // Title banner (auto-fading)
+    if (titleAlpha > 0.05) {
+      ctx.globalAlpha = titleAlpha;
+      ctx.font = '700 11px Inter, sans-serif';
+      ctx.fillStyle = 'rgba(126,226,168,0.85)';
+      ctx.fillText('LEVEL 2  —  THE FLOODED SUBLEVEL', 10, 14);
+      ctx.font = '600 11px Inter, sans-serif';
+      ctx.fillStyle = '#a9c9c2';
+      const hint = currentHint();
+      if (hint) {
+        const hintLines = wrapText(hint, 480, ctx);
+        if (hintLines.length) ctx.fillText(hintLines[0], 10, 30);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // Inventory — icons-only, no text labels (cleaner). Inactive items render
+    // dim. Coin pill stays at the right end of the row.
+    const INV_Y = HUD_H - 14;
+    let ix = 12;
+    const drawIcon = (icon, have) => {
+      ctx.globalAlpha = have ? 1 : 0.28;
       ctx.fillStyle = have ? '#ffd94a' : '#8a9199';
       ctx.font = '18px Inter, system-ui, sans-serif';
       ctx.fillText(icon, ix, INV_Y);
-      ix += 26;
-      ctx.font = '600 11px Inter, sans-serif';
-      ctx.fillStyle = have ? '#e6f2ef' : '#4a5561';
-      ctx.fillText(label, ix, INV_Y);
-      ix += ctx.measureText(label).width + 18;
+      ix += 28;
       ctx.globalAlpha = 1;
     };
+    if (state.hasGrabpack) drawIcon('🧤', true);
+    else drawIcon('🔦', state.hasFlashlight);
+    drawIcon('🦑', state.hasSquidley);
+    drawIcon('🔴', state.hasValveRed);
+    drawIcon('🔵', state.hasValveBlue);
+    drawIcon('🟡', state.hasValveYellow);
+    // Coin pill
+    ctx.font = '600 12px Inter, sans-serif';
+    ctx.fillStyle = '#ffd94a';
+    ctx.fillText('🪙 ' + state.coins, ix, INV_Y);
 
-    // Title bar: LEVEL 2 + current room hint on the left
-    ctx.font = '700 11px Inter, sans-serif';
-    ctx.fillStyle = 'rgba(126,226,168,0.85)';
-    ctx.fillText('LEVEL 2  —  THE FLOODED SUBLEVEL', 10, 14);
-    ctx.font = '600 11px Inter, sans-serif';
-    ctx.fillStyle = '#a9c9c2';
-    const hint = currentHint();
-    if (hint) {
-      const hintLines = wrapText(hint, 480, ctx);
-      for (let i = 0; i < Math.min(hintLines.length, 2); i++) {
-        ctx.fillText(hintLines[i], 10, 32 + i * 13);
-      }
-    }
-    // Flashlight merges into the Grabpack once picked up
-    if (state.hasGrabpack) {
-      drawSlot('🧤', true, 'Grabpack');
-    } else {
-      drawSlot('🔦', state.hasFlashlight, 'flashlight');
-    }
-    drawSlot('🦑', state.hasSquidley, 'Inky Bin');
-    drawSlot('🔴', state.hasValveRed, 'red valve');
-    drawSlot('🔵', state.hasValveBlue, 'blue valve');
-    drawSlot('🟡', state.hasValveYellow, 'yellow valve');
-    drawSlot('🪙', true, state.coins + ' coins');
-
-    // Elemental Hand row (only once Grabpack is picked up)
-    if (state.hasGrabpack) {
-      const EL_Y = INV_Y + 22;
+    // Elemental Hand chips — only render once Grabpack is picked up AND the
+    // bar still has space. Compact chip row, no header text.
+    if (state.hasGrabpack && titleAlpha > 0.05) {
+      const EL_Y = 52;
       const elems = [
         { key: '1', name: 'fire',    icon: '🔥', color: '#ff8a3a' },
         { key: '2', name: 'thunder', icon: '⚡',    color: '#fff06a' },
@@ -1615,75 +1624,92 @@
         { key: '4', name: 'water',   icon: '💧', color: '#6ac8ff' },
         { key: '5', name: 'air',     icon: '💨', color: '#cfe6ff' },
       ];
-      ctx.font = '700 10px Inter, sans-serif';
-      ctx.fillStyle = 'rgba(200,220,210,0.75)';
-      ctx.fillText('ELEMENTAL HAND', 10, EL_Y - 4);
-      let ex = 110;
+      let ex = 12;
       for (const e of elems) {
         const unlocked = !!state.elements[e.name];
         const selected = state.selectedElem === e.name && unlocked;
-        // chip bg
-        ctx.fillStyle = selected ? 'rgba(255,255,255,0.18)' : (unlocked ? 'rgba(255,255,255,0.08)' : 'rgba(40,50,55,0.55)');
-        ctx.fillRect(ex - 2, EL_Y - 12, 36, 16);
+        ctx.fillStyle = selected ? 'rgba(255,255,255,0.18)' : (unlocked ? 'rgba(255,255,255,0.08)' : 'rgba(40,50,55,0.45)');
+        ctx.fillRect(ex - 2, EL_Y - 9, 32, 14);
         if (selected) {
           ctx.strokeStyle = e.color;
           ctx.lineWidth = 1.5;
-          ctx.strokeRect(ex - 2, EL_Y - 12, 36, 16);
+          ctx.strokeRect(ex - 2, EL_Y - 9, 32, 14);
         }
-        // icon
         ctx.globalAlpha = unlocked ? 1 : 0.32;
-        ctx.font = '600 12px Inter, sans-serif';
+        ctx.font = '600 11px Inter, sans-serif';
         ctx.fillStyle = unlocked ? e.color : '#8a8a92';
-        ctx.fillText(e.icon, ex + 2, EL_Y);
-        // key hint
+        ctx.fillText(e.icon, ex, EL_Y);
         ctx.font = '700 9px Inter, sans-serif';
         ctx.fillStyle = unlocked ? 'rgba(230,242,239,0.9)' : '#56606a';
-        ctx.fillText(e.key, ex + 22, EL_Y - 2);
+        ctx.fillText(e.key, ex + 18, EL_Y - 1);
         ctx.globalAlpha = 1;
-        ex += 42;
+        ex += 38;
       }
     }
 
-    // Objectives checklist on the right — computed from state so it’s always accurate
+    // Objectives — only show the ACTIVE step inline (full list is in the
+    // Tasks drawer (T)). One line, right-aligned, padded so PAD/FULL buttons
+    // don't clip it on touch landscape.
     const steps = buildObjectiveList();
+    const active = steps.find(s => s.active && !s.done) || steps.find(s => !s.done);
+    const totalSteps = steps.length;
+    const doneSteps = steps.filter(s => s.done).length;
     ctx.textAlign = 'right';
-    const pad = 10;
-    const objX = VIEW_W - pad;
-    // Small "QUEST" header
+    // Reserve 96px on the right edge for the PAD/FULL buttons on mobile
+    // landscape (HUD shares the canvas with DOM controls overlaid on top).
+    const objX = VIEW_W - 100;
     ctx.font = '700 10px Inter, sans-serif';
     ctx.fillStyle = 'rgba(126,226,168,0.85)';
-    ctx.fillText('OBJECTIVES', objX, 10);
-    ctx.font = '600 11px Inter, sans-serif';
-    for (let i = 0; i < steps.length; i++) {
-      const s = steps[i];
-      ctx.fillStyle = s.done ? 'rgba(130,220,170,0.55)' : (s.active ? '#ffe58a' : '#cfe9df');
-      const prefix = s.done ? '✓ ' : (s.active ? '▸ ' : '· ');
-      ctx.fillText(prefix + s.text, objX, 24 + i * 13);
+    ctx.fillText('OBJECTIVE  ' + doneSteps + '/' + totalSteps, objX, 14);
+    if (active) {
+      ctx.font = '600 12px Inter, sans-serif';
+      ctx.fillStyle = '#ffe58a';
+      // Truncate long lines to a single ellipsised string so the HUD never
+      // wraps over the playfield. Full text remains in the Tasks drawer.
+      const t = '▸ ' + active.text;
+      const trimmed = ctx.measureText(t).width > 360 ? truncateToWidth(t, 360, ctx) : t;
+      ctx.fillText(trimmed, objX, 30);
     }
     ctx.textAlign = 'left';
 
-    // Drip warning (only when actively chasing — Squidley scares him so no warning when fleeing)
+    // Drip warning bar (small, just below the HUD strip).
     if (drip.active && !drip.fleeing) {
       ctx.fillStyle = 'rgba(255, 90, 90, ' + (0.55 + Math.sin(performance.now()/200)*0.15) + ')';
-      ctx.fillRect(0, 110, VIEW_W, 4);
+      ctx.fillRect(0, HUD_H, VIEW_W, 3);
     } else if (drip.active && drip.fleeing) {
       ctx.fillStyle = 'rgba(126, 226, 168, 0.45)';
-      ctx.fillRect(0, 110, VIEW_W, 3);
+      ctx.fillRect(0, HUD_H, VIEW_W, 2);
     }
 
-    // Progress rings bottom-left: gauges
-    const gx = 10, gy = VIEW_H - 28;
-    ctx.font = '600 11px Inter, sans-serif';
-    ctx.fillStyle = state.hasGaugeRed ? '#ff7a7a' : '#4a3a3a';
-    ctx.fillText('R: ' + (state.hasGaugeRed ? state.gaugeValues.red : '?'), gx, gy);
-    ctx.fillStyle = state.hasGaugeBlue ? '#7ab0ff' : '#3a3a4a';
-    ctx.fillText('B: ' + (state.hasGaugeBlue ? state.gaugeValues.blue : '?'), gx + 42, gy);
-    ctx.fillStyle = state.hasGaugeYellow ? '#ffd66a' : '#4a3a1a';
-    ctx.fillText('Y: ' + (state.hasGaugeYellow ? state.gaugeValues.yellow : '?'), gx + 82, gy);
-    ctx.fillStyle = state.cipherSolved ? '#7ee2a8' : '#3a3a4a';
-    ctx.fillText(state.cipherSolved ? '✓ pipes primed' : 'pipes: offline', gx + 130, gy);
+    // Progress gauges bottom-left — only render once at least one gauge has
+    // been read; otherwise it's clutter. Compact single line.
+    if (state.hasGaugeRed || state.hasGaugeBlue || state.hasGaugeYellow || state.cipherSolved) {
+      const gx = 10, gy = VIEW_H - 22;
+      ctx.font = '600 11px Inter, sans-serif';
+      ctx.fillStyle = state.hasGaugeRed ? '#ff7a7a' : '#4a3a3a';
+      ctx.fillText('R:' + (state.hasGaugeRed ? state.gaugeValues.red : '?'), gx, gy);
+      ctx.fillStyle = state.hasGaugeBlue ? '#7ab0ff' : '#3a3a4a';
+      ctx.fillText('B:' + (state.hasGaugeBlue ? state.gaugeValues.blue : '?'), gx + 36, gy);
+      ctx.fillStyle = state.hasGaugeYellow ? '#ffd66a' : '#4a3a1a';
+      ctx.fillText('Y:' + (state.hasGaugeYellow ? state.gaugeValues.yellow : '?'), gx + 72, gy);
+      if (state.cipherSolved) {
+        ctx.fillStyle = '#7ee2a8';
+        ctx.fillText('✓ pipes', gx + 108, gy);
+      }
+    }
 
     ctx.restore();
+  }
+  function truncateToWidth(s, maxW, ctx) {
+    if (ctx.measureText(s).width <= maxW) return s;
+    let lo = 0, hi = s.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      const probe = s.slice(0, mid) + '…';
+      if (ctx.measureText(probe).width <= maxW) lo = mid + 1;
+      else hi = mid;
+    }
+    return s.slice(0, Math.max(0, lo - 1)) + '…';
   }
   function wrapText(text, maxWidth, ctx) {
     const words = text.split(' ');

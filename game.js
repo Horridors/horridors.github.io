@@ -152,6 +152,7 @@ function speak(line, ms = 4000) {
   state.speakerT = ms / 1000;
   subEl.textContent = L;
   subEl.classList.add('show');
+  subEl.classList.add('dismissible');
 }
 function tickSpeaker(dt) {
   if (state.speakerT > 0) {
@@ -159,9 +160,21 @@ function tickSpeaker(dt) {
     if (state.speakerT <= 0) {
       state.speakerLine = null;
       subEl.classList.remove('show');
+      subEl.classList.remove('dismissible');
     }
   }
 }
+// Tap or swipe to dismiss subtitle early — reduces screen clutter.
+function _dismissSubtitle() {
+  if (state.speakerT > 0) {
+    state.speakerT = 0;
+    state.speakerLine = null;
+    subEl.classList.remove('show');
+    subEl.classList.remove('dismissible');
+  }
+}
+subEl.addEventListener('click', _dismissSubtitle);
+subEl.addEventListener('touchstart', (e) => { e.stopPropagation(); _dismissSubtitle(); }, { passive: true });
 
 // ---------- Geometry: walls, rooms, doors ----------
 // Corridor runs horizontally near y=900..1080, x=200..2240.

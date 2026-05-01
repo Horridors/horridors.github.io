@@ -230,20 +230,48 @@
     if (ov) ov.classList.add('hidden');
   }
   function showGemPopup(g) {
-    // Small toast that auto-dismisses
+    // Compact corner toast that auto-dismisses — anchored top-right so it
+    // never overlaps the centre HUD or objectives panel. Tap to dismiss early.
     const toast = document.createElement('div');
-    toast.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%) translateY(-20px);background:#1a1024;border:2px solid ' + g.color + ';border-radius:12px;padding:14px 20px;color:#fff;font-family:system-ui;z-index:200;box-shadow:0 8px 32px rgba(0,0,0,0.6);opacity:0;transition:all 400ms cubic-bezier(0.2,0.9,0.3,1);max-width:360px;text-align:center;';
+    toast.style.cssText = [
+      'position:fixed',
+      'top:54px',
+      'right:12px',
+      'left:auto',
+      'transform:translateX(20px)',
+      'background:#1a1024',
+      'border:2px solid ' + g.color,
+      'border-radius:12px',
+      'padding:10px 14px',
+      'color:#fff',
+      'font-family:system-ui',
+      'z-index:200',
+      'box-shadow:0 8px 32px rgba(0,0,0,0.6)',
+      'opacity:0',
+      'transition:all 400ms cubic-bezier(0.2,0.9,0.3,1)',
+      'max-width:240px',
+      'text-align:left',
+      'cursor:pointer',
+      'pointer-events:auto'
+    ].join(';');
     toast.innerHTML =
-      '<div style="font-size:11px;letter-spacing:2px;color:' + g.color + ';font-weight:700;">💎 HIDDEN GEM FOUND</div>' +
-      '<div style="font:700 17px system-ui;margin-top:4px;">' + g.title + '</div>' +
-      '<div style="font-size:12px;opacity:0.85;margin-top:6px;line-height:1.45;">' + g.story + '</div>';
+      '<div style="font-size:10px;letter-spacing:2px;color:' + g.color + ';font-weight:700;">💎 HIDDEN GEM</div>' +
+      '<div style="font:700 14px system-ui;margin-top:2px;">' + g.title + '</div>' +
+      '<div style="font-size:11px;opacity:0.85;margin-top:4px;line-height:1.4;">' + g.story + '</div>' +
+      '<div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;opacity:0.45;margin-top:6px;">tap to dismiss</div>';
     document.body.appendChild(toast);
-    requestAnimationFrame(() => { toast.style.opacity = '1'; toast.style.transform = 'translateX(-50%) translateY(0)'; });
-    setTimeout(() => {
+    requestAnimationFrame(() => { toast.style.opacity = '1'; toast.style.transform = 'translateX(0)'; });
+    let dismissed = false;
+    const dismiss = () => {
+      if (dismissed) return;
+      dismissed = true;
       toast.style.opacity = '0';
-      toast.style.transform = 'translateX(-50%) translateY(-20px)';
+      toast.style.transform = 'translateX(20px)';
       setTimeout(() => toast.remove(), 500);
-    }, 5500);
+    };
+    toast.addEventListener('click', dismiss);
+    toast.addEventListener('touchstart', (e) => { e.stopPropagation(); dismiss(); }, { passive: true });
+    setTimeout(dismiss, 5500);
   }
 
   // Auto-paint gem button once DOM is ready

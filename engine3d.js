@@ -856,16 +856,44 @@ function _kl(t) { return (window.HorridorsTouch && window.HorridorsTouch.keyLabe
 function toast(text, ms = 2400) {
   toastEl.textContent = _kl(text);
   toastEl.classList.add('show');
+  toastEl.classList.add('dismissible');
   clearTimeout(toast._t);
-  toast._t = setTimeout(() => toastEl.classList.remove('show'), ms);
+  toast._t = setTimeout(() => {
+    toastEl.classList.remove('show');
+    toastEl.classList.remove('dismissible');
+  }, ms);
 }
 
 function speak(speaker, text, ms = 3400) {
   subSpeaker.textContent = speaker || '';
   subText.textContent = _kl(text);
   subtitleEl.classList.add('show');
+  subtitleEl.classList.add('dismissible');
   clearTimeout(speak._t);
-  speak._t = setTimeout(() => subtitleEl.classList.remove('show'), ms);
+  speak._t = setTimeout(() => {
+    subtitleEl.classList.remove('show');
+    subtitleEl.classList.remove('dismissible');
+  }, ms);
+}
+
+// Tap-to-dismiss for transient overlays (toast and subtitle).
+if (toastEl) {
+  const dismissToast = () => {
+    clearTimeout(toast._t);
+    toastEl.classList.remove('show');
+    toastEl.classList.remove('dismissible');
+  };
+  toastEl.addEventListener('click', dismissToast);
+  toastEl.addEventListener('touchstart', (e) => { e.stopPropagation(); dismissToast(); }, { passive: true });
+}
+if (subtitleEl) {
+  const dismissSub = () => {
+    clearTimeout(speak._t);
+    subtitleEl.classList.remove('show');
+    subtitleEl.classList.remove('dismissible');
+  };
+  subtitleEl.addEventListener('click', dismissSub);
+  subtitleEl.addEventListener('touchstart', (e) => { e.stopPropagation(); dismissSub(); }, { passive: true });
 }
 
 function setObjective(text) {
@@ -928,8 +956,8 @@ function examineTank() {
     markTask('squidley');
     squidley.visible = true;
     squidley.position.set(chester.position.x, 1.4, chester.position.z + 0.8);
-    toast('Squidley (Inky Bin) floats out of the tank and joins you!');
-    speak('Squidley', '… blurp ✨');
+    toast('Inky Bin floats out of the tank and joins you!');
+    speak('Inky Bin', '… blurp ✨');
   } else {
     toast('The tank is empty now. Glass glints.');
   }
