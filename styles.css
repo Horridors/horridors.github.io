@@ -2385,6 +2385,27 @@ body.pseudo-fullscreen #orient-hint { display: none !important; }
     opacity: 0.25 !important;
     pointer-events: none !important;
   }
+
+  /* v1.2.1 fix: When NOT in pseudo-fullscreen, intro/title overlays were still
+     scoped to the small #game-frame (414x259 on a typical phone), so long
+     intro text (L2-L5, L7) pushed the CTA button hundreds of pixels below
+     the viewport. No visible scrollbar = users couldn't reach the button.
+     Apply the same full-viewport escape unconditionally on portrait phones.
+     Touch controls aren't drawn over the full screen in this mode (they're
+     anchored to #game-frame too), so leaving them is safe. */
+  body:not(.pseudo-fullscreen) .overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 2147483640 !important;
+  }
+  body:not(.pseudo-fullscreen) .overlay:not(.hidden) ~ #touch-controls,
+  body:not(.pseudo-fullscreen):has(.overlay:not(.hidden)) #touch-controls {
+    opacity: 0.25 !important;
+    pointer-events: none !important;
+  }
 }
 
 /* ---- Mode 2: Rotated landscape fallback ----
