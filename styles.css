@@ -471,28 +471,31 @@ body {
 .level-jump {
   margin-top: 22px;
   padding-top: 18px;
-  border-top: 1px dashed var(--border);
+  border-top: 1px solid var(--border);
 }
 .level-jump-label {
-  font-size: 11px;
-  letter-spacing: 0.14em;
+  font-size: 12px;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 10px;
+  color: var(--accent);
+  margin-bottom: 12px;
   text-align: center;
+  font-weight: 600;
 }
 .level-jump-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
 }
 .level-jump-row .btn-ghost {
-  flex: 1 1 0;
-  padding: 8px 6px;
+  padding: 10px 6px;
   font-size: 12px;
   min-width: 0;
   letter-spacing: 0.04em;
+  font-weight: 600;
+}
+@media (max-width: 380px) {
+  .level-jump-row { grid-template-columns: repeat(2, 1fr); }
 }
 
 .controls-hint b {
