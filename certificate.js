@@ -96,8 +96,10 @@
   });
 
   function isUnlocked(n) {
-    if (n <= 1) return true;
-    return !!currentProgress()[n - 1];
+    // v1.2.3: all levels are unlocked for everyone from the start.
+    // Progression tracking (currentProgress) still runs so certificates work,
+    // but the picker no longer gates access.
+    return true;
   }
   window.__isLevelUnlocked = isUnlocked;
 
