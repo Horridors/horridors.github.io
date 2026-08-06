@@ -31,6 +31,12 @@ window.addEventListener('blur', () => keys.clear());
 const isDown = (...ks) => ks.some(k => keys.has(k));
 const wasPressed = (...ks) => ks.some(k => justPressed.has(k));
 
+// v1.2.4: mirror level-1 scene to a global so shared-leaderboard.js can hide the
+// HUD timer on the title screen. Cheap polling (avoids touching every scene write).
+setInterval(() => {
+  try { window.__gameScene = (typeof state !== 'undefined' && state) ? state.scene : null; } catch (e) {}
+}, 250);
+
 // ---------- State ----------
 const state = {
   scene: 'title',          // 'title' | 'play' | 'puzzle' | 'combo' | 'note' | 'caught' | 'end'
@@ -928,14 +934,23 @@ const Combo = {
     // can solve without the lateral-thinking riddle.
     const tier = (window.__difficulty && window.__difficulty.id && window.__difficulty.id()) || 'normal';
     const sub = document.getElementById('combo-sub');
+    // v1.2.4: many players don't realise the clue lives in one of the other lockers.
+    // If the janitor scribble hasn't been found yet, add a friendly nudge on top of
+    // whatever the difficulty-specific hint says.
+    const foundScribble = state.notes && state.notes.some(n => n && n.title === 'Janitor scribble');
     if (sub) {
+      let base;
       if (tier === 'easy') {
-        sub.innerHTML = 'Easy-mode hint: the code is <b style="color:#ffd84a;letter-spacing:0.15em;">' + state.comboCode.split('').join(' — ') + '</b>';
+        base = 'Easy-mode hint: the code is <b style="color:#ffd84a;letter-spacing:0.15em;">' + state.comboCode.split('').join(' — ') + '</b>';
       } else if (tier === 'hard') {
-        sub.textContent = 'Find the 3-digit code. No hints.';
+        base = 'Find the 3-digit code. No hints.';
       } else {
-        sub.textContent = 'Find the 3-digit code somewhere in the rooms.';
+        base = 'Find the 3-digit code somewhere in the rooms.';
       }
+      if (!foundScribble && tier !== 'hard') {
+        base += '<div style="margin-top:8px;font-size:13px;color:#7ee2a8;">💡 Try searching the <b>green</b> or <b>blue</b> locker next to this one — one of them hides the code.</div>';
+      }
+      sub.innerHTML = base;
     }
     this.render();
   },

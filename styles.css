@@ -939,15 +939,22 @@ body {
   padding: 8px 4px;
 }
 .dial-btn {
-  background: transparent;
-  border: 0;
+  background: rgba(255, 217, 74, 0.08);
+  border: 1px solid rgba(255, 217, 74, 0.25);
+  border-radius: 6px;
   color: var(--accent);
-  font-size: 18px;
+  font-size: 22px;
   cursor: pointer;
-  padding: 4px 14px;
+  padding: 10px 22px;
+  min-width: 44px;
+  min-height: 44px;
   font-family: var(--font-body);
+  font-weight: 700;
+  transition: background 0.12s, color 0.12s, transform 0.06s;
+  touch-action: manipulation;
 }
-.dial-btn:hover { color: var(--yellow); }
+.dial-btn:hover { color: var(--yellow); background: rgba(255, 217, 74, 0.16); }
+.dial-btn:active { transform: scale(0.94); }
 .dial-num {
   font-family: 'Courier New', monospace;
   font-size: 42px;

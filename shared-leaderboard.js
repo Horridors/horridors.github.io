@@ -91,8 +91,12 @@
   // ---------- Run timer state ----------
   // Persisted across reloads via horridors:run:state:v1.
   const STATE_KEY = 'horridors:run:state:v1';
-  function loadState() {
-    return lsGetJSON(STATE_KEY, null) || {
+  // Safety cap: if wall-clock elapsed exceeds this, the run was abandoned.
+  // Anything longer than 8 hours is almost certainly a tab left open,
+  // a suspended PWA, or a phone that slept for days (source of the 1166h bug).
+  const MAX_RUN_MS = 8 * 60 * 60 * 1000;
+  function freshState() {
+    return {
       startedAt: 0,        // wall-clock ms when full run began (0 if not started)
       level: 0,            // currently active level (0 = none)
       levelStartedAt: 0,   // wall-clock ms when current level began
@@ -102,6 +106,22 @@
       pausedAt: 0,         // wall-clock when paused
       pausedTotal: 0,      // total ms paused this run
     };
+  }
+  function loadState() {
+    const raw = lsGetJSON(STATE_KEY, null);
+    if (!raw) return freshState();
+    // Safety: if the persisted run has been "running" for absurdly long,
+    // reset it. Prevents the HUD showing values like 1166:09:26.
+    if (raw.startedAt && !raw.finished) {
+      const wall = Date.now() - raw.startedAt;
+      if (wall < 0 || wall > MAX_RUN_MS) {
+        try { console.warn('[Horridors] Stale run state (', wall, 'ms). Resetting.'); } catch(e) {}
+        const clean = freshState();
+        lsSetJSON(STATE_KEY, clean);
+        return clean;
+      }
+    }
+    return raw;
   }
   function saveState(s) { lsSetJSON(STATE_KEY, s); }
 
@@ -332,7 +352,12 @@
   function tickChip() {
     const el = ensureChip();
     state = loadState();
-    const visible = !!state.startedAt && !state.finished;
+    // Hide the HUD timer on the title screen and any non-play scene.
+    // The game exposes window.__gameScene ('title'|'play'|...). Fall back to visible
+    // only when we can positively confirm we're in an active run.
+    const scene = (typeof window !== 'undefined' && window.__gameScene) || null;
+    const onTitle = scene === 'title' || scene === 'end' || scene === null && !state.level;
+    const visible = !!state.startedAt && !state.finished && !!state.level && !onTitle;
     el.classList.toggle('show', visible);
     if (!visible) return;
     const totalEl = document.getElementById('hud-timer-total');
