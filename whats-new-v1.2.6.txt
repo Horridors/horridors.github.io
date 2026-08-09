@@ -1,0 +1,8 @@
+Horridors v1.2.6 — Level 1 sizing & layout fix
+
+- Props now render at proper scale next to Chester (previously lockers, bookcases and crates were 3× too tall, making the rooms feel like a giant's house)
+- Interact range bumped from 110 to 140 so you can trigger prompts without needing to be pixel-perfect next to an object
+- Supply Room shelf shortened (340 → 160 wide) so there is now a clear walkway on the right side to reach the lockers and crate
+- Same painterly Level 1 prop art from v1.2.5
+
+Fixes Chester's report: "I can't get to the objects."

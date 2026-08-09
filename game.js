@@ -351,7 +351,7 @@ addFurn({ id: 'sp_locker1', room: SR.id, x: SR.left + 30,  y: SR.top + 30,  w: 6
 addFurn({ id: 'sp_locker2', room: SR.id, x: SR.left + 110, y: SR.top + 30,  w: 60,  h: 110, kind: 'locker_g', label: 'green locker', prompt: 'Open green locker' });
 addFurn({ id: 'sp_locker3', room: SR.id, x: SR.left + 190, y: SR.top + 30,  w: 60,  h: 110, kind: 'locker_b', label: 'blue locker',  prompt: 'Open blue locker' });
 addFurn({ id: 'sp_crate1',  room: SR.id, x: SR.left + 290, y: SR.top + 50,  w: 80,  h: 70,  kind: 'crate',  label: 'wooden crate', prompt: 'Open crate' });
-addFurn({ id: 'sp_shelf',   room: SR.id, x: SR.left + 30,  y: SR.top + 200, w: 340, h: 30,  kind: 'shelf2', label: 'shelf',        prompt: 'Search shelf' });
+addFurn({ id: 'sp_shelf',   room: SR.id, x: SR.left + 30,  y: SR.top + 220, w: 160, h: 30,  kind: 'shelf2', label: 'shelf',        prompt: 'Search shelf' });
 addFurn({ id: 'sp_barrel',  room: SR.id, x: SR.left + 60,  y: SR.top + 320, w: 60,  h: 60,  kind: 'barrel', label: 'barrel',       prompt: 'Look in barrel' });
 addFurn({ id: 'sp_mop',     room: SR.id, x: SR.left + 200, y: SR.top + 320, w: 30,  h: 100, kind: 'mop',    label: 'mop',          decoration: true });
 addFurn({ id: 'sp_box',     room: SR.id, x: SR.left + 270, y: SR.top + 360, w: 100, h: 80,  kind: 'box',    label: 'cardboard box',prompt: 'Search box' });
@@ -709,7 +709,7 @@ function updateCamera() {
 // ---------- Interaction ----------
 function nearestInteractable() {
   const cx = player.x + player.w/2, cy = player.y + player.h/2;
-  let best = null, bestD = 110 * 110; // search radius²
+  let best = null, bestD = 140 * 140; // search radius² (v1.2.6: bumped from 110 for easier interaction)
 
   // Items
   for (const it of items) {
@@ -2019,14 +2019,14 @@ function drawPropImage(f, img) {
   const TALL = new Set(['locker','locker_g','locker_b','bookcase','shelf','shelf2','cabinet','clock','drawer','doll','globe','desk','panel']);
   let drawW, drawH;
   if (TALL.has(f.kind)) {
-    // Anchor to bottom of footprint; extend upward.
-    drawH = Math.max(footH * 1.6, footH + 40);
+    // Anchor to bottom of footprint; extend upward SLIGHTLY (v1.2.6: tightened).
+    drawH = Math.max(footH * 1.25, footH + 20);
     drawW = drawH * aspect;
-    if (drawW > footW * 1.8) { drawW = footW * 1.8; drawH = drawW / aspect; }
+    if (drawW > footW * 1.4) { drawW = footW * 1.4; drawH = drawW / aspect; }
   } else {
-    // Fit inside footprint
-    drawW = footW; drawH = drawW / aspect;
-    if (drawH > footH * 1.4) { drawH = footH * 1.4; drawW = drawH * aspect; }
+    // Fit inside footprint (v1.2.6: tightened)
+    drawW = footW * 1.05; drawH = drawW / aspect;
+    if (drawH > footH * 1.15) { drawH = footH * 1.15; drawW = drawH * aspect; }
   }
   const dx = f.x + (f.w - drawW) / 2;
   const dy = f.y + f.h - drawH; // bottom-anchored
