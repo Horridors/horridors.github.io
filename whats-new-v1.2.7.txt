@@ -1,0 +1,7 @@
+Horridors v1.2.7 — Collision matches what you can see
+
+Fix for Chester's report: "the free space around the furniture seems to be restricted; ensure the space to move is represented by what is visually there."
+
+- Every prop now has a per-kind collision box shrunk to match the visible BASE of its sprite (24-48% smaller than before). Chester can now walk right up to a table, workbench, chair or locker without hitting invisible padding.
+- The mop is now non-blocking (it was a decoration and shouldn't have been a wall).
+- Same L1 painterly art, same sizes, same prompts.

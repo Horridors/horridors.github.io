@@ -372,12 +372,59 @@ addFurn({ id: 'lb_bin',    room: LR.id, x: LR.left + 320, y: LR.top + 420, w: 40
 addFurn({ id: 'tr_chest',  room: 'treasure', x: TREASURE.x + 40, y: TREASURE.y + 110, w: 70, h: 60, kind: 'tchest', label: 'treasure chest', prompt: 'Open the chest!' });
 
 // All furniture also pushes a wall (collision rect) unless decoration is "rug" type
-const NON_BLOCKING = new Set(['rug']);
+// v1.2.7: Collision box shrunk to match the visible BASE of each prop. Painterly sprites have
+// generous padding, so a full-footprint wall makes it feel like there are invisible walls
+// around every object. Chester's collision is 22x22; we shrink walls so he can walk right up.
+const NON_BLOCKING = new Set(['rug', 'mop']);
+// Per-kind collision inset: [insetX, insetTop, insetBottom] as fractions of footprint w/h.
+// insetTop is the amount to trim from the TOP of the footprint (tall sprites extend upward visually,
+// but the physical base is at the bottom). insetBottom shrinks the bottom edge slightly for perspective.
+const COLLISION_INSET = {
+  // Tall-standing props: base is a narrow strip at the bottom of the footprint
+  locker:   { x: 0.15, top: 0.20, bot: 0.05 },
+  locker_g: { x: 0.15, top: 0.20, bot: 0.05 },
+  locker_b: { x: 0.15, top: 0.20, bot: 0.05 },
+  bookcase: { x: 0.15, top: 0.15, bot: 0.05 },
+  shelf:    { x: 0.15, top: 0.15, bot: 0.05 },
+  shelf2:   { x: 0.10, top: 0.20, bot: 0.10 },
+  cabinet:  { x: 0.15, top: 0.15, bot: 0.05 },
+  clock:    { x: 0.25, top: 0.15, bot: 0.05 },
+  drawer:   { x: 0.10, top: 0.15, bot: 0.05 },
+  doll:     { x: 0.10, top: 0.15, bot: 0.05 },
+  globe:    { x: 0.25, top: 0.20, bot: 0.10 },
+  desk:     { x: 0.10, top: 0.20, bot: 0.10 },
+  panel:    { x: 0.10, top: 0.10, bot: 0.10 },
+  // Short/flat props: collision matches footprint more closely
+  bed:      { x: 0.05, top: 0.10, bot: 0.05 },
+  chest:    { x: 0.05, top: 0.15, bot: 0.05 },
+  tchest:   { x: 0.05, top: 0.15, bot: 0.05 },
+  crate:    { x: 0.05, top: 0.10, bot: 0.05 },
+  barrel:   { x: 0.15, top: 0.15, bot: 0.10 },
+  box:      { x: 0.05, top: 0.10, bot: 0.05 },
+  basket:   { x: 0.15, top: 0.15, bot: 0.10 },
+  table:    { x: 0.10, top: 0.20, bot: 0.10 },
+  workbench:{ x: 0.05, top: 0.15, bot: 0.10 },
+  chair:    { x: 0.15, top: 0.20, bot: 0.10 },
+  horse:    { x: 0.10, top: 0.15, bot: 0.10 },
+  blocks:   { x: 0.15, top: 0.15, bot: 0.10 },
+  bin:      { x: 0.15, top: 0.15, bot: 0.10 },
+};
 for (const f of furniture) {
   if (NON_BLOCKING.has(f.kind)) continue;
-  const wall = { x: f.x, y: f.y, w: f.w, h: f.h, _isFurn: true };
+  const inset = COLLISION_INSET[f.kind] || { x: 0.10, top: 0.15, bot: 0.05 };
+  const dx = f.w * inset.x;
+  const dtop = f.h * inset.top;
+  const dbot = f.h * inset.bot;
+  const wall = {
+    x: f.x + dx,
+    y: f.y + dtop,
+    w: Math.max(8, f.w - dx * 2),
+    h: Math.max(8, f.h - dtop - dbot),
+    _isFurn: true
+  };
   walls.push(wall);
   f.blocks = true;
+  f._wall = wall; // keep reference for debugging/interact
 }
 
 // ---------- Items (loose pickups in world) ----------
