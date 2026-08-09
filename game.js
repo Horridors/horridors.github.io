@@ -1991,12 +1991,98 @@ function drawTreasureRoom() {
 }
 
 function drawFurniture() {
-  for (const f of furniture) drawFurn(f);
+  // v1.2.5: 3/4 isometric z-ordering — sort by (y + h) so props closer to the
+  // camera (further down the screen) render on top of props further back.
+  // Rugs (kind 'rug') always render first as they're on the floor.
+  const sorted = furniture.slice().sort((a, b) => {
+    if (a.kind === 'rug' && b.kind !== 'rug') return -1;
+    if (b.kind === 'rug' && a.kind !== 'rug') return 1;
+    return (a.y + a.h) - (b.y + b.h);
+  });
+  for (const f of sorted) drawFurn(f);
+}
+
+// v1.2.5: Painterly prop atlas. If the prop image is loaded, drawImage it
+// respecting the furniture rect; otherwise fall through to the procedural draw.
+// Some kinds (locker, panel, tchest) need overlays for interactive state, so we
+// draw the image THEN the overlays for those kinds.
+function drawPropImage(f, img) {
+  // Preserve aspect ratio: fit the prop image to the furniture rect, centered.
+  // We slightly overdraw upward for 'tall' props so they read as standing up in
+  // 3/4 perspective. w/h from the furniture is the FOOTPRINT; the sprite may
+  // extend up above the footprint by up to h * 1.4 for tall props.
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  if (!iw || !ih) return false;
+  const aspect = iw / ih;
+  const footW = f.w, footH = f.h;
+  // Tall-standing kinds visually extend upward past the footprint
+  const TALL = new Set(['locker','locker_g','locker_b','bookcase','shelf','shelf2','cabinet','clock','drawer','doll','globe','desk','panel']);
+  let drawW, drawH;
+  if (TALL.has(f.kind)) {
+    // Anchor to bottom of footprint; extend upward.
+    drawH = Math.max(footH * 1.6, footH + 40);
+    drawW = drawH * aspect;
+    if (drawW > footW * 1.8) { drawW = footW * 1.8; drawH = drawW / aspect; }
+  } else {
+    // Fit inside footprint
+    drawW = footW; drawH = drawW / aspect;
+    if (drawH > footH * 1.4) { drawH = footH * 1.4; drawW = drawH * aspect; }
+  }
+  const dx = f.x + (f.w - drawW) / 2;
+  const dy = f.y + f.h - drawH; // bottom-anchored
+  try {
+    ctx.drawImage(img, dx, dy, drawW, drawH);
+  } catch (e) {
+    return false;
+  }
+  return true;
 }
 
 function drawFurn(f) {
   const x = f.x, y = f.y, w = f.w, h = f.h;
   const searched = state.searched.has(f.id);
+  // Try painterly prop atlas first (v1.2.5)
+  const propImg = (window.HorridorsProps && window.HorridorsProps.getImage(f)) || null;
+  if (propImg && drawPropImage(f, propImg)) {
+    // Interactive-state overlays for a few special kinds
+    if (f.kind === 'panel') {
+      // Solved tint overlay
+      if (state.puzzleSolved) {
+        ctx.fillStyle = 'rgba(74, 240, 160, 0.18)';
+        ctx.fillRect(x, y, w, h);
+      } else if (state.hasBattery) {
+        ctx.fillStyle = 'rgba(74, 122, 240, 0.14)';
+        ctx.fillRect(x, y, w, h);
+      }
+      label('PICTURE PANEL', x + w/2, y - 4);
+    } else if (f.kind === 'tchest') {
+      // Yellow glow pulse
+      const pulse = 0.6 + Math.sin(performance.now() / 400) * 0.4;
+      ctx.save();
+      ctx.shadowColor = '#ffd94a';
+      ctx.shadowBlur = 24 * pulse;
+      ctx.strokeStyle = 'rgba(255, 224, 112, ' + (0.5 + pulse * 0.3) + ')';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);
+      ctx.restore();
+      label('TREASURE!', x + w/2, y - 6);
+    } else if (f.kind === 'locker' || f.kind === 'locker_g' || f.kind === 'locker_b') {
+      label(f.label.split(' ')[0].toUpperCase(), x + w/2, y - 4);
+    } else if (f.kind === 'chest' && searched) {
+      tinyOpen(x + w/2, y);
+    } else if (['bed','doll','panel'].includes(f.kind) === false && f.label && (f.kind === 'chest')) {
+      // no-op
+    }
+    // Searched checkmark overlay (same as procedural path below)
+    if (searched && f.prompt && !['pz_panel','sp_locker1','tr_chest'].includes(f.id)) {
+      ctx.fillStyle = '#4af0a0';
+      ctx.font = 'bold 14px Inter';
+      ctx.textAlign = 'center';
+      ctx.fillText('✓', f.x + f.w - 6, f.y + 12);
+    }
+    return;
+  }
+  // === Fallback: procedural draws (kept for props whose image failed / not loaded yet) ===
   switch (f.kind) {
     case 'bed': {
       ctx.fillStyle = '#5a4a6a'; rect(x, y, w, h);

@@ -1,0 +1,17 @@
+Horridors v1.2.5 — Level 1 painterly overhaul
+
+The whole Level 1 corridor and rooms have new painterly, 3D-cartoon horror-cartoon props:
+
+Toy Room — bed with sleeping figure, treasure chest, green painted toy shelf, wooden blocks, rocking horse, decrepit dollhouse, yellow drawer, and the big oriental rug.
+
+Puzzle Room — dining table, red-cushioned chairs, wooden cabinets, wall picture-lock, wicker basket, grandfather clock.
+
+Supply Room — new locker triple (red, green, blue), wooden crate, metal shelf, wooden barrel, cardboard box, mop, workbench.
+
+Library — four tall wooden bookcases, antique desk with a banker's lamp, antique globe, wastebasket.
+
+Treasure Room — proper golden treasure chest.
+
+Style: same painterly, cel-shaded, 3/4 isometric camera used across all Level 1 props. Chester still walks around exactly as before.
+
+Nothing else changed. Same controls, same puzzles, same story. Just a big graphics upgrade for Level 1.
