@@ -1,0 +1,18 @@
+Horridors v1.2.8 — Fix the "load twice" glitch
+
+Chester reported: "game is glitching on load and resets, so you have to load up twice."
+
+Root cause: when the service worker installed a fresh copy on an uncontrolled tab
+(i.e. a first-ever visit or after clearing cache), it took control mid-load and
+the PWA bootstrap auto-reloaded the page. The user saw the game start, then
+reset to the loading state, and had to sit through a second load.
+
+Fixes in pwa-register.js:
+- The FIRST controllerchange on a previously-uncontrolled page is now ignored
+  (that's the SW claiming a fresh tab, not a version update).
+- Real version updates that arrive MID-PLAY are now deferred until the player
+  returns to the title screen (checked every 1.5s). No more mid-game resets.
+- Reloads still happen automatically for real updates when the game is idle.
+
+SW cache -> horridors-v34-load-glitch.
+Android 1.2.8 (versionCode 13).
