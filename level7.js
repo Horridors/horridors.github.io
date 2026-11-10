@@ -17,13 +17,16 @@
   const ARENA = { x1: 80, x2: WORLD_W - 80, y1: 120, y2: WORLD_H - 80 };
 
   const cam = { x: 0, y: 0 };
+  // v1.2.9: touch players fire with the A button, not number keys.
+  const isTouch = () => document.body.classList.contains('has-touch');
+  const fireWord = (k) => isTouch() ? 'tap A' : `press ${k}`;
 
   // Element order the player must follow
   const ELEMENTS = [
-    { id: 'fire',    color: '#ff7a45', key: '1', label: '🔥 FIRE',    hint: 'The red pylon — stand on it, then press 1.' },
-    { id: 'thunder', color: '#ffe14a', key: '2', label: '⚡ THUNDER', hint: 'The yellow pylon — stand on it, then press 2.' },
-    { id: 'earth',   color: '#8dc16b', key: '3', label: '🌱 EARTH',   hint: 'The green pylon — stand on it, then press 3.' },
-    { id: 'water',   color: '#6fbfff', key: '4', label: '💧 WATER',  hint: 'The blue pylon — stand on it, then press 4.' },
+    { id: 'fire',    color: '#ff7a45', key: '1', label: '🔥 FIRE',    hint: 'The red pylon — stand on it, then press 1 (or tap A).' },
+    { id: 'thunder', color: '#ffe14a', key: '2', label: '⚡ THUNDER', hint: 'The yellow pylon — stand on it, then press 2 (or tap A).' },
+    { id: 'earth',   color: '#8dc16b', key: '3', label: '🌱 EARTH',   hint: 'The green pylon — stand on it, then press 3 (or tap A).' },
+    { id: 'water',   color: '#6fbfff', key: '4', label: '💧 WATER',  hint: 'The blue pylon — stand on it, then press 4 (or tap A).' },
   ];
 
   // Pylons around the arena
@@ -712,7 +715,7 @@
     if (next && state.boss.state === 'ready') {
       ctx.fillStyle = next.color;
       ctx.font = '800 14px system-ui';
-      ctx.fillText(`NEXT: ${next.label}  (stand on the matching pylon, then press ${next.key})`, VIEW_W/2, 48);
+      ctx.fillText(`NEXT: ${next.label}  (stand on the matching pylon, then ${fireWord(next.key)})`, VIEW_W/2, 48);
     }
     // Speaker line
     if (state.speakerLine && state.speakerT > 0) {
@@ -739,7 +742,16 @@
     ctx.fillStyle = '#09040f';
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
     ctx.save();
-    ctx.translate(-cam.x, -cam.y);
+    // v1.2.9: fit the WHOLE arena on screen. The arena (1400x820) is bigger
+    // than the view (960x600); the old follow-camera cropped the four
+    // pylons off the edges, so the level felt "super zoomed in".
+    // Leave a strip at the top for the HUD + NEXT objective line.
+    const HUD_TOP = 56;
+    const Z = Math.min(VIEW_W / WORLD_W, (VIEW_H - HUD_TOP) / WORLD_H);
+    const offX = (VIEW_W - WORLD_W * Z) / 2;
+    const offY = HUD_TOP + ((VIEW_H - HUD_TOP) - WORLD_H * Z) / 2;
+    ctx.translate(offX, offY);
+    ctx.scale(Z, Z);
     drawFloor();
     drawWalls();
     drawPylons();
@@ -875,7 +887,7 @@
       requestAnimationFrame(loop);
     }
     registerTasks();
-    setTimeout(() => speak('🔥 FIRE first! Stand on the red pylon, then press 1.', 3600), 500);
+    setTimeout(() => speak(`🔥 FIRE first! Stand on the red pylon, then ${fireWord(1)}.`, 3600), 500);
   }
 
   document.getElementById('btn-l7-intro-next')?.addEventListener('click', advanceCutscene);

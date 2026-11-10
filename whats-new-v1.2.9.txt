@@ -1,0 +1,2 @@
+Level 7 fixed: the whole Blacky Pants arena now fits on screen, so you can see all four pylons.
+On phones and tablets the hints now say "tap A" to fire a charged pylon.
