@@ -1,0 +1,3 @@
+Fixed: the Bargain Bin shop could stay stuck on screen and cover later levels, so a level looked like it would not load.
+Fixed: tapping X in the shop no longer starts Level 4 behind the title screen.
+Fixed: Level 1 item panel no longer shows behind other levels after Continue.

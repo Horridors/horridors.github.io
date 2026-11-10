@@ -1339,6 +1339,7 @@ function __hideGameplayOverlays() {
    'overlay-l4-title','overlay-l4-end','overlay-l5-intro','overlay-l5-end',
    'overlay-l6-intro','overlay-l6-end','overlay-l7-intro','overlay-l7-end',
    'overlay-l8-intro','overlay-l8-end','overlay-credits',
+   'overlay-l4-shop','overlay-l7-shop','overlay-cipher','overlay-valve','overlay-code','overlay-combo','overlay-candles','overlay-mirror','overlay-comic','overlay-l3-comic','overlay-puzzle','overlay-tasks','overlay-collectibles',
    'overlay-note','overlay-notes','overlay-resume'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.add('hidden');
@@ -1395,6 +1396,8 @@ function __launchResume(n) {
     startPlay();
     return;
   }
+  // v1.2.10: hide Level 1's HUD so its item panel doesn't ghost over other levels
+  { const hud = document.getElementById('hud'); if (hud) hud.classList.add('hidden'); }
   const L = window['__horridorsL' + n];
   if (L && L.resume) { L.resume(); return; }
   // Fallback — no resume available, start fresh
@@ -1506,7 +1509,8 @@ window.__returnToTitle = function returnToTitle() {
    'overlay-l4-title','overlay-l4-end','overlay-l5-intro','overlay-l5-end',
    'overlay-l6-intro','overlay-l6-end','overlay-l7-intro','overlay-l7-end',
    'overlay-l8-intro','overlay-l8-end','overlay-credits',
-   'overlay-note','overlay-notes','overlay-puzzle'].forEach(id => {
+   'overlay-l4-shop','overlay-l7-shop','overlay-cipher','overlay-valve','overlay-code','overlay-combo','overlay-candles','overlay-mirror','overlay-comic','overlay-l3-comic','overlay-puzzle','overlay-tasks','overlay-collectibles',
+   'overlay-note','overlay-notes','overlay-resume'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.add('hidden');
   });

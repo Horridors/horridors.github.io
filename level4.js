@@ -1314,7 +1314,8 @@
     const ov = document.getElementById('overlay-l4-shop');
     if (!ov || ov.classList.contains('hidden')) return;
     const k = e.key;
-    if (k === 'e' || k === 'E' || k === ' ' || k === 'Enter' || k === 'Escape') {
+    // v1.2.10: Escape (the X button) goes to the title, it must NOT start L4
+    if (k === 'e' || k === 'E' || k === ' ' || k === 'Enter') {
       e.preventDefault();
       closeL4Shop();
     }
